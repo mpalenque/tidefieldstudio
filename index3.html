@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tidefield · grid</title>
+    <meta
+      name="description"
+      content="tidefield studio — monochrome digital seascape."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #000000;
+        --ink: #f4f6fb;
+        --mute: rgba(244, 246, 251, 0.45);
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      .stage {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+      }
+      .stage canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .stage::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%),
+          linear-gradient(180deg, rgba(0,0,0,0.3) 0%, transparent 14%, transparent 84%, rgba(0,0,0,0.85) 100%);
+      }
+      .ui {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        padding: clamp(1.25rem, 3vw, 2rem);
+      }
+      .topbar, .bottombar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--mute);
+      }
+      .topbar span, .bottombar span { white-space: nowrap; }
+      .center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.25rem;
+        text-align: center;
+      }
+      .wordmark {
+        margin: 0;
+        font-family: "Inter", system-ui, sans-serif;
+        font-weight: 300;
+        font-size: clamp(3rem, 11vw, 8.5rem);
+        letter-spacing: -0.045em;
+        line-height: 0.95;
+        text-transform: lowercase;
+        color: var(--ink);
+        text-shadow: 0 0 28px rgba(244, 246, 251, 0.08);
+      }
+      .wordmark em {
+        font-style: normal;
+        color: var(--mute);
+      }
+      .tagline {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 11px;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: var(--mute);
+      }
+      .credit {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        color: rgba(244, 246, 251, 0.25);
+        text-decoration: none;
+      }
+      .credit:hover { color: rgba(244, 246, 251, 0.7); }
+      @media (max-width: 640px) {
+        .topbar, .bottombar { font-size: 10px; letter-spacing: 0.12em; }
+        .wordmark { font-size: clamp(2.6rem, 16vw, 4.4rem); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage" aria-hidden="true">
+      <canvas id="scene"></canvas>
+    </div>
+
+    <div class="ui">
+      <div class="topbar">
+        <span>tidefield · studio</span>
+        <span id="clock">— · —</span>
+      </div>
+
+      <div class="center">
+        <h1 class="wordmark">tide<em>·</em>field</h1>
+        <p class="tagline">interactive design · motion · code</p>
+      </div>
+
+      <div class="bottombar">
+        <span>lat 0.000 · lon 0.000</span>
+        <span>v 0.1 · monochrome</span>
+      </div>
+    </div>
+
+    <script id="vs" type="x-shader/x-vertex">
+      attribute vec2 a_pos;
+      void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
+    </script>
+
+    <script id="fs" type="x-shader/x-fragment">
+      precision highp float;
+
+      uniform vec2  iResolution;
+      uniform float iTime;
+
+      // ---------- noise helpers ----------
+      float hash21(vec2 p) {
+        p = fract(p * vec2(123.34, 456.21));
+        p += dot(p, p + 45.32);
+        return fract(p.x * p.y);
+      }
+      float vnoise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        float a = hash21(i);
+        float b = hash21(i + vec2(1.0, 0.0));
+        float c = hash21(i + vec2(0.0, 1.0));
+        float d = hash21(i + vec2(1.0, 1.0));
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+      }
+      float fbm(vec2 p) {
+        float v = 0.0;
+        float a = 0.5;
+        for (int i = 0; i < 5; i++) {
+          v += a * vnoise(p);
+          p *= 2.02;
+          a *= 0.5;
+        }
+        return v;
+      }
+
+      // height of the water at world coord p.xy
+      float waterHeight(vec2 p, float t) {
+        float h = 0.0;
+        h += sin(p.x * 0.6 + t * 0.45) * 0.45;
+        h += sin(p.y * 0.5 - t * 0.30) * 0.35;
+        h += sin((p.x + p.y) * 0.35 + t * 0.20) * 0.30;
+        h += fbm(p * 0.35 + vec2(t * 0.05, -t * 0.04)) * 0.6;
+        return h;
+      }
+
+      // ---------- ground-plane projection ----------
+      // We shoot a ray from a virtual camera, intersect with y=0 plane
+      // (the sea), and shade by an analytical grid + normal-based light.
+      vec3 rayDir(vec2 uv) {
+        // mild perspective, no fisheye
+        return normalize(vec3(uv.x, uv.y - 0.05, -1.6));
+      }
+
+      // signed distance from screen-space coord to the closest grid line
+      // (wireframe over the warped sea surface)
+      float gridLines(vec2 p, float density) {
+        vec2 g = abs(fract(p * density - 0.5) - 0.5) / fwidth(p * density);
+        float line = min(g.x, g.y);
+        return 1.0 - min(line, 1.0);
+      }
+
+      void main() {
+        vec2 frag = gl_FragCoord.xy;
+        vec2 uv = (frag - 0.5 * iResolution.xy) / iResolution.y;
+
+        // camera
+        vec3 ro = vec3(0.0, 1.2, 0.0);
+        vec3 rd = rayDir(uv);
+
+        // intersect with horizontal plane y = -0.4 (sea level)
+        float seaY = -0.4;
+        float tHit = (seaY - ro.y) / rd.y;
+        vec3 hit;
+        bool hitsSea = (rd.y < -0.001) && (tHit > 0.0);
+        if (hitsSea) hit = ro + rd * tHit;
+        else         hit = vec3(uv.x * 50.0, seaY, -50.0);
+
+        // displaced height + analytic normal
+        vec2 wp = hit.xz + vec2(0.0, iTime * 0.6);
+        float h = waterHeight(wp, iTime);
+        float eps = 0.15;
+        float hx = waterHeight(wp + vec2(eps, 0.0), iTime);
+        float hz = waterHeight(wp + vec2(0.0, eps), iTime);
+        vec3 n = normalize(vec3(h - hx, eps * 1.4, h - hz));
+
+        // distance fade
+        float dist = length(hit.xz);
+        float fade = exp(-dist * 0.03);
+
+        // grid in world space, perspective-aware density
+        float density = 1.6;
+        vec2 worldGrid = wp;
+        float lines = gridLines(worldGrid, density);
+        // secondary fine grid
+        float fine = gridLines(worldGrid, density * 4.0) * 0.25;
+
+        // simulated lighting: a soft moonlight + rim
+        vec3 lDir = normalize(vec3(0.3, 0.85, -0.4));
+        float diff = clamp(dot(n, lDir), 0.0, 1.0);
+        float rim  = pow(1.0 - max(dot(n, -rd), 0.0), 2.5);
+
+        // base sea brightness (very dark)
+        float seaBase = 0.04 + diff * 0.18 + rim * 0.18;
+        seaBase *= fade;
+
+        // grid intensity, brighter on wave crests
+        float crest = clamp(h * 0.6 + 0.5, 0.0, 1.0);
+        float gridI = (lines * 0.7 + fine) * (0.35 + 0.65 * crest) * fade;
+
+        // sky / horizon
+        float horizon = smoothstep(0.0, 0.25, uv.y + 0.05);
+        float skyHaze = (1.0 - horizon) * 0.06;
+
+        // combine (monochrome)
+        float intensity = 0.0;
+        if (hitsSea) intensity = seaBase + gridI;
+        else         intensity = skyHaze;
+
+        // tint slightly cool
+        vec3 col = vec3(intensity);
+        col *= vec3(0.92, 0.96, 1.0);
+
+        // soft scanline
+        float scan = 0.97 + 0.03 * sin(frag.y * 1.6 + iTime * 1.2);
+        col *= scan;
+
+        // film grain
+        float grain = (hash21(frag + iTime) - 0.5) * 0.04;
+        col += grain;
+
+        // vignette
+        vec2 vig = (frag / iResolution.xy) - 0.5;
+        col *= 1.0 - dot(vig, vig) * 0.9;
+
+        gl_FragColor = vec4(col, 1.0);
+      }
+    </script>
+
+    <script>
+      (function () {
+        const canvas = document.getElementById("scene");
+        const gl =
+          canvas.getContext("webgl", { antialias: false, alpha: false }) ||
+          canvas.getContext("experimental-webgl");
+        if (!gl) {
+          canvas.replaceWith(Object.assign(document.createElement("div"), {
+            textContent: "WebGL not supported",
+            style: "color:#fff;display:flex;align-items:center;justify-content:center;height:100%;",
+          }));
+          return;
+        }
+        // standard derivatives for crisp grid lines
+        gl.getExtension("OES_standard_derivatives");
+
+        const vsSrc = document.getElementById("vs").textContent;
+        const fsSrc =
+          "#extension GL_OES_standard_derivatives : enable\n" +
+          document.getElementById("fs").textContent;
+
+        function compile(type, src) {
+          const s = gl.createShader(type);
+          gl.shaderSource(s, src);
+          gl.compileShader(s);
+          if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+            console.error(gl.getShaderInfoLog(s));
+          }
+          return s;
+        }
+        const vs = compile(gl.VERTEX_SHADER, vsSrc);
+        const fs = compile(gl.FRAGMENT_SHADER, fsSrc);
+        const prog = gl.createProgram();
+        gl.attachShader(prog, vs);
+        gl.attachShader(prog, fs);
+        gl.linkProgram(prog);
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+          console.error(gl.getProgramInfoLog(prog));
+        }
+        gl.useProgram(prog);
+
+        const buf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        gl.bufferData(gl.ARRAY_BUFFER,
+          new Float32Array([-1,-1, 1,-1, -1,1,  -1,1, 1,-1, 1,1]),
+          gl.STATIC_DRAW);
+        const aPos = gl.getAttribLocation(prog, "a_pos");
+        gl.enableVertexAttribArray(aPos);
+        gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+        const uRes  = gl.getUniformLocation(prog, "iResolution");
+        const uTime = gl.getUniformLocation(prog, "iTime");
+
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        function resize() {
+          const w = Math.floor(canvas.clientWidth * dpr);
+          const h = Math.floor(canvas.clientHeight * dpr);
+          if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w; canvas.height = h;
+            gl.viewport(0, 0, w, h);
+          }
+        }
+        window.addEventListener("resize", resize);
+
+        const start = performance.now();
+        function frame(now) {
+          resize();
+          const t = (now - start) / 1000;
+          gl.uniform2f(uRes, canvas.width, canvas.height);
+          gl.uniform1f(uTime, t);
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+
+        // tiny clock in the topbar
+        const clockEl = document.getElementById("clock");
+        const pad = (n) => String(n).padStart(2, "0");
+        function tick() {
+          const d = new Date();
+          clockEl.textContent =
+            pad(d.getHours()) + ":" + pad(d.getMinutes()) + " · utc" +
+            (d.getTimezoneOffset() <= 0 ? "+" : "-") +
+            pad(Math.abs(d.getTimezoneOffset() / 60));
+        }
+        tick();
+        setInterval(tick, 30000);
+      })();
+    </script>
+  </body>
+</html>
