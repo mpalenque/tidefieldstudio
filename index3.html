@@ -30,66 +30,61 @@
         min-height: 100vh;
         overflow-x: hidden;
       }
-      .stage {
-        position: fixed;
-        inset: 0;
-        z-index: 0;
+      .header {
+        position: relative;
+        width: 100%;
+        height: clamp(320px, 56vh, 560px);
+        background: #000;
+        overflow: hidden;
       }
-      .stage canvas {
+      .header canvas {
         display: block;
         width: 100%;
         height: 100%;
       }
-      .stage::after {
+      .header::after {
         content: "";
         position: absolute;
         inset: 0;
         pointer-events: none;
         background:
-          radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.65) 100%),
-          linear-gradient(180deg, rgba(0,0,0,0.35) 0%, transparent 18%, transparent 80%, rgba(0,0,0,0.85) 100%);
+          radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.6) 100%),
+          linear-gradient(180deg, rgba(0,0,0,0.35) 0%, transparent 18%, transparent 70%, rgba(0,0,0,0.95) 100%);
       }
-      .ui {
-        position: relative;
+      .topbar {
+        position: absolute;
+        inset: 0 0 auto 0;
         z-index: 1;
-        min-height: 100vh;
-        display: grid;
-        grid-template-rows: auto 1fr auto;
-        padding: clamp(1.25rem, 3vw, 2rem);
-      }
-      .topbar, .bottombar {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        padding: clamp(1rem, 2.5vw, 1.5rem) clamp(1.25rem, 3vw, 2rem);
         font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 11px;
         letter-spacing: 0.18em;
         text-transform: uppercase;
         color: var(--mute);
       }
-      .center {
+      .shell {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 1.25rem;
+        gap: 1rem;
         text-align: center;
+        padding: clamp(2rem, 6vw, 4rem) 1.5rem clamp(3rem, 8vw, 5rem);
       }
       .wordmark {
         margin: 0;
         font-family: "Inter", system-ui, sans-serif;
         font-weight: 200;
-        font-size: clamp(3rem, 11vw, 8.5rem);
+        font-size: clamp(2.6rem, 8vw, 6rem);
         letter-spacing: -0.045em;
-        line-height: 0.95;
+        line-height: 1;
         text-transform: lowercase;
         color: var(--ink);
-        text-shadow: 0 0 28px rgba(244, 246, 251, 0.08);
       }
-      .wordmark em {
-        font-style: normal;
-        color: var(--mute);
-      }
+      .wordmark em { font-style: normal; color: var(--mute); }
       .tagline {
         font-family: "JetBrains Mono", ui-monospace, monospace;
         font-size: 11px;
@@ -98,6 +93,7 @@
         color: var(--mute);
       }
       .credit {
+        margin-top: 0.5rem;
         font-family: "JetBrains Mono", ui-monospace, monospace;
         font-size: 10px;
         letter-spacing: 0.16em;
@@ -106,35 +102,29 @@
       }
       .credit:hover { color: rgba(244, 246, 251, 0.6); }
       @media (max-width: 640px) {
-        .topbar, .bottombar { font-size: 10px; letter-spacing: 0.12em; }
-        .wordmark { font-size: clamp(2.6rem, 16vw, 4.4rem); }
+        .header { height: clamp(220px, 42vh, 360px); }
+        .topbar { font-size: 10px; letter-spacing: 0.12em; }
+        .wordmark { font-size: clamp(2rem, 14vw, 3.6rem); }
       }
     </style>
   </head>
   <body>
-    <div class="stage" aria-hidden="true">
+    <header class="header" aria-label="tidefield">
       <canvas id="scene"></canvas>
-    </div>
-
-    <div class="ui">
       <div class="topbar">
         <span>tidefield · studio</span>
         <span id="clock">— · —</span>
       </div>
+    </header>
 
-      <div class="center">
-        <h1 class="wordmark">tide<em>·</em>field</h1>
-        <p class="tagline">interactive design · motion · code</p>
-      </div>
-
-      <div class="bottombar">
-        <span>nocturne · monochrome</span>
-        <a class="credit"
-           href="https://www.shadertoy.com/view/Ms2SD1"
-           target="_blank"
-           rel="noopener noreferrer">shader: seascape · tdm · cc by-nc-sa 3.0</a>
-      </div>
-    </div>
+    <main class="shell">
+      <h1 class="wordmark">tide<em>·</em>field</h1>
+      <p class="tagline">interactive design · motion · code</p>
+      <a class="credit"
+         href="https://www.shadertoy.com/view/Ms2SD1"
+         target="_blank"
+         rel="noopener noreferrer">shader: seascape · tdm · cc by-nc-sa 3.0</a>
+    </main>
 
     <script id="vs" type="x-shader/x-vertex">
       attribute vec2 a_pos;
