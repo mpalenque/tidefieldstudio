@@ -16,9 +16,9 @@
     />
     <style>
       :root {
-        color-scheme: light;
-        --bg: #ffffff;
-        --ink: #0a1d3a;
+        color-scheme: dark;
+        --bg: #000000;
+        --ink: #f4f6fb;
       }
       * { box-sizing: border-box; }
       html, body { margin: 0; min-height: 100%; }
@@ -42,9 +42,9 @@
         pointer-events: none;
         background: linear-gradient(
           180deg,
-          rgba(255,255,255,0) 60%,
-          rgba(255,255,255,0.55) 82%,
-          rgba(255,255,255,1) 100%
+          rgba(0,0,0,0) 60%,
+          rgba(0,0,0,0.6) 82%,
+          rgba(0,0,0,1) 100%
         );
       }
       .scene { display: block; width: 100%; height: 100%; }
@@ -70,10 +70,10 @@
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 10px;
         letter-spacing: 0.04em;
-        color: rgba(10, 29, 58, 0.4);
+        color: rgba(244, 246, 251, 0.35);
         text-decoration: none;
       }
-      .credit:hover { color: rgba(10, 29, 58, 0.7); }
+      .credit:hover { color: rgba(244, 246, 251, 0.7); }
       @media (max-width: 640px) {
         .header { height: clamp(200px, 40vh, 320px); }
         .wordmark { font-size: clamp(2.4rem, 14vw, 4.4rem); }
@@ -166,7 +166,7 @@
       vec3 getSkyColor(vec3 e, float day) {
         e.y = (max(e.y, 0.0) * 0.8 + 0.2) * 0.8;
         vec3 daySky = vec3(pow(1.0 - e.y, 2.0), 1.0 - e.y, 0.6 + (1.0 - e.y) * 0.4) * 1.1;
-        vec3 nightSky = vec3(0.015, 0.03, 0.08) + vec3(0.02, 0.03, 0.07) * (1.0 - e.y);
+        vec3 nightSky = vec3(0.04, 0.06, 0.12) + vec3(0.04, 0.05, 0.10) * (1.0 - e.y);
         return mix(nightSky, daySky, day);
       }
 
@@ -215,13 +215,21 @@
         fresnel = pow(fresnel, 3.0) * 0.5;
         vec3 reflected = getSkyColor(reflect(eye, n), day);
         vec3 baseDay = SEA_BASE;
-        vec3 baseNight = vec3(0.0, 0.02, 0.05);
+        vec3 baseNight = vec3(0.02, 0.06, 0.12);
         vec3 base = mix(baseNight, baseDay, day);
-        vec3 refracted = base + diffuse(n, l, 80.0) * SEA_WATER_COLOR * (0.04 + 0.08 * day);
+        vec3 refracted = base + diffuse(n, l, 80.0) * SEA_WATER_COLOR * (0.06 + 0.08 * day);
+
+        // moonlight: a second light from the opposite hemisphere keeps the water visible at night
+        vec3 moonDir = normalize(vec3(-0.4, 0.7, -0.6));
+        vec3 moonTint = vec3(0.55, 0.7, 1.0);
+        float moonAmt = (1.0 - day);
+        refracted += diffuse(n, moonDir, 40.0) * moonTint * 0.18 * moonAmt;
+
         vec3 color = mix(refracted, reflected, fresnel);
         float atten = max(1.0 - dot(dist, dist) * 0.001, 0.0);
-        color += SEA_WATER_COLOR * (p.y - SEA_HEIGHT) * 0.18 * atten * (0.4 + 0.6 * day);
+        color += SEA_WATER_COLOR * (p.y - SEA_HEIGHT) * 0.18 * atten * (0.5 + 0.5 * day);
         color += vec3(specular(n, l, eye, 60.0)) * (0.2 + 0.8 * day);
+        color += moonTint * specular(n, moonDir, eye, 40.0) * 0.35 * moonAmt;
         return color;
       }
 
@@ -278,7 +286,7 @@
       }
 
       void main() {
-        float time = iTime * 0.3 + iMouse.x * 0.01;
+        float time = iTime * 0.08 + iMouse.x * 0.004;
         vec3 color = getPixel(gl_FragCoord.xy, time);
         gl_FragColor = vec4(pow(color, vec3(0.65)), 1.0);
       }
