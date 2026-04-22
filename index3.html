@@ -46,7 +46,7 @@
       .header {
         position: relative;
         width: 100%;
-        min-height: clamp(420px, 76vh, 760px);
+        min-height: clamp(32px, 5.2vh, 56px);
         background: #000;
         overflow: hidden;
       }
@@ -61,8 +61,7 @@
         inset: 0;
         pointer-events: none;
         background:
-          radial-gradient(ellipse at center, transparent 46%, rgba(0,0,0,0.7) 100%),
-          linear-gradient(180deg, rgba(0,0,0,0.18) 0%, transparent 16%, rgba(2,3,6,0.06) 48%, rgba(2,3,6,0.76) 74%, rgba(2,3,6,0.96) 88%, rgba(2,3,6,1) 100%);
+          linear-gradient(180deg, transparent 0%, transparent 5%, rgba(2,3,6,0.15) 22%, rgba(2,3,6,0.6) 52%, rgba(2,3,6,0.92) 72%, rgba(2,3,6,1) 86%);
       }
       .topbar {
         position: absolute;
@@ -134,7 +133,7 @@
         height: clamp(10rem, 18vw, 15rem);
         transform: translateX(-50%);
         pointer-events: none;
-        background: linear-gradient(180deg, rgba(2,3,6,0) 0%, rgba(2,3,6,0.2) 18%, rgba(2,3,6,0.72) 58%, var(--bg) 100%);
+        background: linear-gradient(180deg, rgba(2,3,6,0) 0%, rgba(2,3,6,0.04) 36%, rgba(2,3,6,0.16) 68%, rgba(2,3,6,0.28) 100%);
       }
       .section {
         display: grid;
@@ -205,7 +204,7 @@
         color: var(--ink);
       }
       @media (max-width: 640px) {
-        .header { min-height: clamp(380px, 72vh, 620px); }
+        .header { min-height: clamp(96px, 18vh, 150px); }
         .topbar { font-size: 10px; letter-spacing: 0.12em; }
         .hero,
         .shell { width: min(100% - 1.5rem, 1100px); }
@@ -242,6 +241,9 @@
         </p>
       </div>
     </header>
+
+    <!-- Performance meter: always-on, bottom-left -->
+    <div id="perf" style="position:fixed;bottom:12px;left:12px;z-index:9999;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;line-height:1.55;color:#0f0;background:rgba(0,0,0,0.78);border:1px solid rgba(0,255,0,0.25);padding:7px 10px;border-radius:4px;pointer-events:none;white-space:pre;contain:layout paint style;"></div>
 
     <main class="shell">
       <section class="section" aria-labelledby="studio-title">
@@ -416,6 +418,7 @@
 
       uniform vec2  iResolution;
       uniform float iTime;
+      uniform float iScrollY;
 
       const int NUM_STEPS = 8;
       const float PI      = 3.141592;
@@ -543,6 +546,77 @@
         return vec3(xz.x, getSeaHeight(xz), xz.y);
       }
 
+      // Blue day → sunset on scroll. scroll=0 → blue ocean, scroll=1 → warm sunset.
+      vec3 SUN_DIR = normalize(vec3(0.313, 0.10, -0.944));
+
+      vec3 getColorSkyColor(vec3 e) {
+        float y  = clamp(e.y,  0.0, 1.0);
+        float hy = clamp(-e.y, 0.0, 1.0);
+
+        // --- blue day sky (scroll = 0) ---
+        vec3 zenith_blue  = vec3(0.12, 0.30, 0.68);
+        vec3 horizon_blue = vec3(0.52, 0.72, 0.90);
+        vec3 sky_blue = mix(horizon_blue, zenith_blue, smoothstep(0.0, 0.75, y));
+        sky_blue = mix(sky_blue, vec3(0.72, 0.84, 0.95), exp(-y * 8.0) * 0.30); // haze
+        // white-yellow sun high in sky
+        float sd_b = max(dot(e, normalize(vec3(0.313, 0.55, -0.774))), 0.0);
+        sky_blue += vec3(1.8, 1.8, 1.4) * pow(sd_b, 8000.0);
+        sky_blue += vec3(0.6, 0.6, 0.5) * pow(sd_b, 60.0) * 0.12;
+        sky_blue = mix(sky_blue, vec3(0.38, 0.55, 0.75), hy * 0.8);
+
+        // --- sunset sky (scroll = 1) ---
+        vec3 zenith_sun  = vec3(0.08, 0.14, 0.36);
+        vec3 mid_sun     = vec3(0.46, 0.20, 0.09);
+        vec3 horizon_sun = vec3(0.85, 0.48, 0.18);
+        vec3 sky_sun = mix(horizon_sun, mid_sun,   smoothstep(0.0, 0.22, y));
+        sky_sun       = mix(sky_sun,   zenith_sun, smoothstep(0.22, 0.80, y));
+        sky_sun       = mix(sky_sun, vec3(0.72, 0.34, 0.18), exp(-y * 10.0) * 0.32);
+        float sd_s = max(dot(e, SUN_DIR), 0.0);
+        sky_sun += vec3(2.0, 1.4, 0.50) * pow(sd_s, 6000.0);
+        sky_sun += vec3(0.95, 0.50, 0.16) * pow(sd_s, 90.0) * 0.38;
+        sky_sun += vec3(0.55, 0.22, 0.05) * pow(sd_s, 14.0) * 0.12;
+        sky_sun = mix(sky_sun, vec3(0.05, 0.04, 0.10), hy * 0.85);
+
+        return mix(sky_blue, sky_sun, smoothstep(0.0, 0.4, iScrollY));
+      }
+
+      // Blue-day to sunset ocean.
+      vec3 getColorSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
+        float depth = clamp(length(dist) * 0.015, 0.0, 1.0);
+        float fresnel = clamp(1.0 - dot(n, -eye), 0.0, 1.0);
+        fresnel = mix(0.02, 1.0, pow(fresnel, 4.0));
+        float atten = max(1.0 - dot(dist, dist) * 0.001, 0.0);
+
+        // --- blue day ocean (scroll = 0) ---
+        vec3 dayLight = normalize(vec3(0.313, 0.55, -0.774));
+        vec3 deep_blue = vec3(0.008, 0.040, 0.130);
+        vec3 mid_blue  = vec3(0.020, 0.090, 0.220);
+        vec3 ref_blue  = mix(deep_blue, mid_blue, depth);
+        ref_blue += vec3(0.06, 0.14, 0.22) * diffuse(n, dayLight, 80.0) * 0.30;
+        vec3 refl_blue = getColorSkyColor(reflect(eye, n));
+        vec3 col_blue  = mix(ref_blue, refl_blue, fresnel);
+        col_blue += vec3(1.4, 1.5, 1.6) * specular(n, dayLight, eye, 300.0) * 0.55; // white glint
+        col_blue += vec3(0.30, 0.42, 0.60) * specular(n, dayLight, eye, 40.0) * 0.18;
+        col_blue += vec3(0.14, 0.28, 0.42) * max(p.y - SEA_HEIGHT, 0.0) * 0.20 * atten;
+        col_blue = mix(col_blue, vec3(0.20, 0.42, 0.68), depth * 0.12);
+
+        // --- sunset ocean (scroll = 1) ---
+        vec3 deep_sun = vec3(0.005, 0.018, 0.055);
+        vec3 mid_sun  = vec3(0.012, 0.050, 0.130);
+        vec3 ref_sun  = mix(deep_sun, mid_sun, depth);
+        ref_sun += vec3(0.26, 0.09, 0.02) * diffuse(n, l, 60.0) * 0.20;
+        vec3 refl_sun = getColorSkyColor(reflect(eye, n));
+        vec3 col_sun  = mix(ref_sun, refl_sun, fresnel);
+        col_sun += vec3(2.0, 1.1, 0.38) * specular(n, l, eye, 380.0) * 0.72;
+        col_sun += vec3(0.65, 0.28, 0.05) * specular(n, l, eye, 45.0) * 0.25;
+        vec2 rp = p.xz * 0.12;
+        col_sun += vec3(0.80, 0.46, 0.12) * abs(sin(rp.x*3.1+iTime*0.4))*0.05 * clamp(1.0-depth,0.0,1.0) * 0.32;
+        col_sun += vec3(0.65, 0.38, 0.14) * max(p.y - SEA_HEIGHT, 0.0) * 0.20 * atten;
+        col_sun = mix(col_sun, vec3(0.36, 0.15, 0.06), depth * 0.16);
+
+        return mix(col_blue, col_sun, smoothstep(0.0, 0.4, iScrollY));
+      }
+
       // Monochrome nocturne sea shading.
       vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
         float fresnel = clamp(1.0 - dot(n, -eye), 0.0, 1.0);
@@ -590,10 +664,24 @@
       }
 
       float edgeWire(vec2 st, vec2 a, vec2 b) {
-        float width = mix(0.45, 1.25, pow(clamp(st.y, 0.0, 1.0), 1.6)) / iResolution.y;
-        float feather = width * 2.4;
+        float width = mix(0.40, 1.15, pow(clamp(st.y, 0.0, 1.0), 1.35)) / iResolution.y;
+        float feather = width * 2.1;
         float d = segmentDistance(st, a, b);
         return 1.0 - smoothstep(width, feather, d);
+      }
+
+      float wireCell(vec2 base, vec2 spacing, vec3 ori, mat3 rot, vec2 st) {
+        vec2 v00 = projectToScreen(getSeaPoint(base), ori, rot);
+        vec2 v10 = projectToScreen(getSeaPoint(base + vec2(spacing.x, 0.0)), ori, rot);
+        vec2 v01 = projectToScreen(getSeaPoint(base + vec2(0.0, spacing.y)), ori, rot);
+        vec2 v11 = projectToScreen(getSeaPoint(base + spacing), ori, rot);
+
+        float line = 0.0;
+        if (v00.x > -5.0 && v10.x > -5.0) line = max(line, edgeWire(st, v00, v10));
+        if (v00.x > -5.0 && v01.x > -5.0) line = max(line, edgeWire(st, v00, v01));
+        if (v10.x > -5.0 && v11.x > -5.0) line = max(line, edgeWire(st, v10, v11));
+        if (v01.x > -5.0 && v11.x > -5.0) line = max(line, edgeWire(st, v01, v11));
+        return line;
       }
 
       vec3 getWireSeaColor(vec3 p, vec3 ori, mat3 rot, vec2 st, float trace) {
@@ -601,19 +689,19 @@
           return vec3(0.0);
         }
 
-        vec2 spacing = vec2(4.8, 3.2);
+        vec2 spacing = vec2(3.2, 2.2);
         vec2 cell = floor(p.xz / spacing);
-        vec2 base = cell * spacing;
-        vec2 v00 = projectToScreen(getSeaPoint(base), ori, rot);
-        vec2 v10 = projectToScreen(getSeaPoint(base + vec2(spacing.x, 0.0)), ori, rot);
-        vec2 v01 = projectToScreen(getSeaPoint(base + vec2(0.0, spacing.y)), ori, rot);
-        vec2 v11 = projectToScreen(getSeaPoint(base + spacing), ori, rot);
+        float line = 0.0;
+        for (int oy = -1; oy <= 1; oy++) {
+          for (int ox = -1; ox <= 1; ox++) {
+            vec2 base = (cell + vec2(float(ox), float(oy))) * spacing;
+            line = max(line, wireCell(base, spacing, ori, rot, st));
+          }
+        }
 
-        float line = max(
-          max(edgeWire(st, v00, v10), edgeWire(st, v00, v01)),
-          max(edgeWire(st, v10, v11), edgeWire(st, v01, v11))
-        );
-        return vec3(step(0.12, line));
+        line = smoothstep(0.05, 0.92, line);
+        line = pow(line, 0.82);
+        return vec3(line);
       }
 
       vec3 getNormal(vec3 p, float eps) {
@@ -647,8 +735,8 @@
         vec2 uv = st * 2.0 - 1.0;
         uv.x *= iResolution.x / iResolution.y;
 
-        // gentle drift, no fisheye
-        vec3 ang = vec3(sin(time*1.5)*0.02, sin(time*0.6)*0.05 + 0.16, time * 0.4);
+        // Camera stays near sun direction with gentle sway; +0.72 offsets view so sun is right-of-center
+        vec3 ang = vec3(sin(time*1.5)*0.02, sin(time*0.6)*0.05 + 0.16, sin(time*0.22)*0.12 + iScrollY * 0.28);
         vec3 ori = vec3(0.0, 3.5, time * 3.0);
         mat3 rot = fromEuler(ang);
         vec3 dir = normalize(vec3(uv.xy, -3.6));
@@ -658,21 +746,38 @@
         float trace = heightMapTracing(ori, dir, p);
         vec3 dist = p - ori;
         vec3 n = getNormal(p, dot(dist, dist) * EPSILON_NRM);
-        vec3 light = normalize(vec3(0.0, 0.6, 0.8));
+        vec3 light      = normalize(vec3(0.0, 0.6, 0.8));           // mono panel
+        vec3 colorLight = SUN_DIR;                                  // color panel — matches sky sun
 
-        vec3 seaColor = getSeaColor(p, n, light, dir, dist);
-        vec3 wireColor = getWireSeaColor(p, ori, rot, st, trace);
-        vec3 surface = st.x < 0.5 ? seaColor : wireColor;
-        vec3 sky = getSkyColor(dir);
-        vec3 background = st.x < 0.5 ? sky : vec3(0.0);
-        float divider = 1.0 - smoothstep(0.0, 0.0025, abs(st.x - 0.5));
+        // Three panels: left=wireframe, middle=mono shaded, right=color
+        bool isLeft   = st.x < 0.3333;
+        bool isRight  = st.x >= 0.6667;
+        bool isMiddle = !isLeft && !isRight;
+
+        vec3 surface;
+        vec3 background;
+
+        if (isLeft) {
+          surface = getWireSeaColor(p, ori, rot, st, trace);
+          background = vec3(0.0);
+        } else if (isMiddle) {
+          surface = getSeaColor(p, n, light, dir, dist);
+          background = getSkyColor(dir);
+        } else {
+          surface = getColorSeaColor(p, n, colorLight, dir, dist);
+          background = getColorSkyColor(dir);
+        }
+
+        // 1px hard dividers
+        float px = 1.0 / iResolution.x;
+        float divider = (abs(st.x - 0.3333) < px * 0.5 || abs(st.x - 0.6667) < px * 0.5) ? 1.0 : 0.0;
 
         vec3 color = mix(
           background,
           surface,
           pow(smoothstep(0.0, -0.02, dir.y), 0.2));
 
-        color = mix(color, vec3(1.0), divider * 0.5);
+        color = mix(color, vec3(1.0), divider);
 
         return color;
       }
@@ -690,7 +795,13 @@
         vec2 st = gl_FragCoord.xy / iResolution.xy;
         vec3 color = getPixel(gl_FragCoord.xy, time);
 
-        if (st.x >= 0.5) {
+        // Gradient: fade to background color at screen bottom
+        float bottomFade = smoothstep(0.0, 0.30, st.y);
+        color = mix(vec3(0.008, 0.012, 0.024), color, bottomFade);
+
+        // Only apply monochrome post-processing to the middle panel
+        bool isMiddle = st.x >= 0.3333 && st.x < 0.6667;
+        if (!isMiddle) {
           gl_FragColor = vec4(color, 1.0);
           return;
         }
@@ -711,7 +822,7 @@
         col += (h21(gl_FragCoord.xy + iTime) - 0.5) * 0.04;
 
         // vignette
-        vec2 vig = (gl_FragCoord.xy / iResolution.xy) - 0.5;
+        vec2 vig = st - 0.5;
         col *= 1.0 - dot(vig, vig) * 0.9;
 
         gl_FragColor = vec4(col, 1.0);
@@ -720,6 +831,7 @@
 
     <script>
       (function () {
+        const headerEl = document.querySelector(".header");
         const canvas = document.getElementById("scene");
         const gl =
           canvas.getContext("webgl", { antialias: false, alpha: false }) ||
@@ -761,8 +873,12 @@
         gl.enableVertexAttribArray(aPos);
         gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
-        const uRes  = gl.getUniformLocation(prog, "iResolution");
-        const uTime = gl.getUniformLocation(prog, "iTime");
+        const uRes    = gl.getUniformLocation(prog, "iResolution");
+        const uTime   = gl.getUniformLocation(prog, "iTime");
+        const uScroll = gl.getUniformLocation(prog, "iScrollY");
+
+        let currentScrollY = 0.0;
+        let targetScrollY = 0.0;
 
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         function resize() {
@@ -775,16 +891,114 @@
         }
         window.addEventListener("resize", resize);
 
+        let scrollTicking = false;
+        function updateScroll() {
+          scrollTicking = false;
+          const headerHeight = headerEl.offsetHeight || window.innerHeight;
+          targetScrollY = Math.min(window.scrollY / Math.max(headerHeight, 1), 1);
+        }
+
+        function requestScrollUpdate() {
+          if (!scrollTicking) {
+            scrollTicking = true;
+            requestAnimationFrame(updateScroll);
+          }
+        }
+
+        window.addEventListener("scroll", requestScrollUpdate, { passive: true });
+        updateScroll();
+
         const start = performance.now();
+        let rafId = null;
+        let activeZone = true;
+        let tabVisible = !document.hidden;
+
+        // ── Perf meter state ──
+        const perfEl = document.getElementById('perf');
+        let _frameTimes = [], _frameCount = 0, _lastPerfT = performance.now();
+        let _minFps = Infinity, _maxFps = 0, _sumFps = 0, _nFps = 0;
+        let _lastFT = performance.now();
+        const SPARK = 48, _spark = new Float32Array(SPARK); let _si = 0;
+        function _updatePerf(now) {
+          const dt = Math.max(now - _lastFT, 0.1); _lastFT = now;
+          const fps = 1000 / dt;
+          _frameTimes.push(dt); if (_frameTimes.length > 60) _frameTimes.shift();
+          _spark[_si % SPARK] = fps; _si++;
+          _frameCount++; _sumFps += fps; _nFps++;
+          if (fps < _minFps) _minFps = fps;
+          if (fps > _maxFps) _maxFps = fps;
+          if (now - _lastPerfT < 500) return; _lastPerfT = now;
+          const avgDt = _frameTimes.reduce((a,b)=>a+b,0)/_frameTimes.length;
+          const cur = 1000/avgDt, avg = _sumFps/_nFps;
+          const jit = Math.sqrt(_frameTimes.reduce((s,t)=>s+(t-avgDt)**2,0)/_frameTimes.length);
+          const bars='▁▂▃▄▅▆▇█';
+          let sp='';
+          for(let i=0;i<SPARK;i++){const v=_spark[(_si+i)%SPARK];sp+=bars[Math.min(Math.floor(v/65*7),7)];}
+          const vs=activeZone?'ACTIVE  ':'PAUSED  '; 
+          const ts=tabVisible?'VISIBLE':'HIDDEN ';
+          perfEl.style.color=cur>=50?'#0f0':cur>=30?'#ff0':'#f55';
+          perfEl.textContent=
+            '┌─ GPU RENDER ──────────────────────────┐\n'+
+            '│ FPS  '+cur.toFixed(1).padStart(7)+' now  '+avg.toFixed(1).padStart(7)+' avg   │\n'+
+            '│ MINMAX  '+_minFps.toFixed(0).padStart(5)+' / '+_maxFps.toFixed(0).padEnd(5)+'             │\n'+
+            '│ DT   '+avgDt.toFixed(2).padStart(7)+' ms   JITTER '+jit.toFixed(2).padStart(5)+' ms │\n'+
+            '│ FRAMES '+String(_frameCount).padStart(10)+'                   │\n'+
+            '│ ● ACTIVE  ZONE: '+vs+' TAB: '+ts+'│\n'+
+            '│ '+sp+' │\n'+
+            '└───────────────────────────────────────┘';
+        }
+        // ── End perf meter ──
+
         function frame(now) {
+          if (!activeZone || !tabVisible) { rafId = null; return; }
+          rafId = requestAnimationFrame(frame);
+          _updatePerf(now);
           resize();
+          currentScrollY += (targetScrollY - currentScrollY) * 0.18;
           const t = (now - start) / 1000;
           gl.uniform2f(uRes, canvas.width, canvas.height);
           gl.uniform1f(uTime, t);
+          gl.uniform1f(uScroll, currentScrollY);
           gl.drawArrays(gl.TRIANGLES, 0, 6);
-          requestAnimationFrame(frame);
         }
-        requestAnimationFrame(frame);
+
+        function ensureRunning() {
+          if (rafId === null) rafId = requestAnimationFrame(frame);
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+          activeZone = entries[0].isIntersecting;
+          if (activeZone) {
+            currentScrollY = targetScrollY;
+            ensureRunning();
+          }
+        }, { threshold: 0, rootMargin: '320px 0px 320px 0px' });
+        observer.observe(headerEl);
+
+        document.addEventListener("visibilitychange", () => {
+          tabVisible = !document.hidden;
+          if (tabVisible && activeZone) {
+            currentScrollY = targetScrollY;
+            ensureRunning();
+          }
+        });
+
+        // Update perf panel when RAF is paused
+        setInterval(() => {
+          if (rafId === null) {
+            const vs = activeZone ? 'ACTIVE  ' : 'PAUSED  ';
+            const ts = tabVisible ? 'VISIBLE' : 'HIDDEN ';
+            perfEl.style.color = '#888';
+            perfEl.textContent =
+              '┌─ GPU RENDER ──────────────────────────┐\n' +
+              '│  *** RENDERER PAUSED ***              │\n' +
+              '│ ○ PAUSED  ZONE: ' + vs + ' TAB: ' + ts + '│\n' +
+              '└───────────────────────────────────────┘';
+          }
+        }, 500);
+
+        // Kick off initial render
+        rafId = requestAnimationFrame(frame);
 
         // tiny clock in the topbar
         const clockEl = document.getElementById("clock");
