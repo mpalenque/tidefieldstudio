@@ -61,8 +61,8 @@
         inset: 0;
         pointer-events: none;
         background:
-          radial-gradient(ellipse at center, transparent 48%, rgba(0,0,0,0.66) 100%),
-          linear-gradient(180deg, rgba(0,0,0,0.24) 0%, transparent 18%, rgba(2,3,6,0.1) 52%, rgba(2,3,6,0.88) 82%, rgba(2,3,6,1) 100%);
+          radial-gradient(ellipse at center, transparent 46%, rgba(0,0,0,0.7) 100%),
+          linear-gradient(180deg, rgba(0,0,0,0.18) 0%, transparent 16%, rgba(2,3,6,0.06) 48%, rgba(2,3,6,0.76) 74%, rgba(2,3,6,0.96) 88%, rgba(2,3,6,1) 100%);
       }
       .topbar {
         position: absolute;
@@ -83,7 +83,8 @@
         z-index: 1;
         width: min(1100px, calc(100% - 2.5rem));
         margin: 0 auto;
-        padding: clamp(6rem, 11vw, 9rem) 0 clamp(3rem, 8vw, 5rem);
+        margin-top: clamp(-4.5rem, -7vw, -2.5rem);
+        padding: 0 0 clamp(2.75rem, 6vw, 4.25rem);
       }
       .eyebrow,
       .section-label,
@@ -121,9 +122,19 @@
         margin: 0 auto;
         position: relative;
         z-index: 1;
-        margin-top: clamp(-5rem, -8vw, -3rem);
-        padding: clamp(5rem, 9vw, 7rem) 0 clamp(4rem, 8vw, 6rem);
-        background: linear-gradient(180deg, rgba(2,3,6,0) 0%, rgba(2,3,6,0.78) 6rem, var(--bg) 14rem);
+        margin-top: clamp(-7rem, -10vw, -4rem);
+        padding: clamp(4rem, 7vw, 5rem) 0 clamp(4rem, 8vw, 6rem);
+      }
+      .shell::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: clamp(-9rem, -14vw, -6rem);
+        width: 100vw;
+        height: clamp(10rem, 18vw, 15rem);
+        transform: translateX(-50%);
+        pointer-events: none;
+        background: linear-gradient(180deg, rgba(2,3,6,0) 0%, rgba(2,3,6,0.2) 18%, rgba(2,3,6,0.72) 58%, var(--bg) 100%);
       }
       .section {
         display: grid;
@@ -529,22 +540,17 @@
         return col;
       }
 
+      float wireLine(float coord, float scale, float width) {
+        float cell = abs(fract(coord * scale) - 0.5);
+        return 1.0 - smoothstep(width, width + 0.012, cell);
+      }
+
       vec3 getWireSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
-        vec2 gridUv = p.xz * vec2(0.34, 0.46);
-        vec2 grid = abs(fract(gridUv) - 0.5);
-          vec2 aa = vec2(0.018);
-        float lineX = 1.0 - smoothstep(0.0, aa.x, grid.x);
-        float lineY = 1.0 - smoothstep(0.0, aa.y, grid.y);
-        float lines = max(lineX, lineY);
-
-        float fresnel = pow(clamp(1.0 - dot(n, -eye), 0.0, 1.0), 2.5);
-        float moon = diffuse(n, normalize(vec3(-0.4, 0.8, -0.5)), 18.0);
-        float depth = max(1.0 - dot(dist, dist) * 0.0008, 0.0);
-
-        vec3 base = vec3(0.016 + moon * 0.045 + fresnel * 0.04);
-        vec3 wire = vec3(0.82) * lines;
-        vec3 foam = vec3(max(p.y - SEA_HEIGHT + 0.18, 0.0) * 0.18 * depth);
-        return base + wire + foam;
+        float lineX = wireLine(p.x, 0.28, 0.016);
+        float lineZ = wireLine(p.z, 0.38, 0.016);
+        float lines = max(lineX, lineZ);
+        float binary = step(0.12, lines);
+        return vec3(binary);
       }
 
       vec3 getNormal(vec3 p, float eps) {
@@ -594,14 +600,15 @@
         vec3 wireColor = getWireSeaColor(p, n, light, dir, dist);
         vec3 surface = st.x < 0.5 ? seaColor : wireColor;
         vec3 sky = getSkyColor(dir);
+        vec3 background = st.x < 0.5 ? sky : vec3(0.0);
         float divider = 1.0 - smoothstep(0.0, 0.0025, abs(st.x - 0.5));
 
         vec3 color = mix(
-          sky,
+          background,
           surface,
           pow(smoothstep(0.0, -0.02, dir.y), 0.2));
 
-        color = mix(color, vec3(0.75), divider * 0.28);
+        color = mix(color, vec3(1.0), divider * 0.5);
 
         return color;
       }
