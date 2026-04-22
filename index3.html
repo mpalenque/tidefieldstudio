@@ -441,6 +441,14 @@
         return m;
       }
 
+      mat3 transposeMat3(mat3 m) {
+        return mat3(
+          vec3(m[0].x, m[1].x, m[2].x),
+          vec3(m[0].y, m[1].y, m[2].y),
+          vec3(m[0].z, m[1].z, m[2].z)
+        );
+      }
+
       float hash(vec2 p) {
         float h = dot(p, vec2(127.1, 311.7));
         return fract(sin(h) * 43758.5453123);
@@ -512,6 +520,29 @@
         return p.y - h;
       }
 
+      float getSeaHeight(vec2 xz) {
+        float freq = SEA_FREQ;
+        float amp  = SEA_HEIGHT;
+        float choppy = SEA_CHOPPY;
+        vec2 uv = xz;
+        uv.x *= 0.75;
+        float d, h = 0.0;
+        for (int i = 0; i < ITER_FRAGMENT; i++) {
+          d  = sea_octave((uv + SEA_TIME) * freq, choppy);
+          d += sea_octave((uv - SEA_TIME) * freq, choppy);
+          h += d * amp;
+          uv *= octave_m;
+          freq *= 1.9;
+          amp *= 0.22;
+          choppy = mix(choppy, 1.0, 0.2);
+        }
+        return h;
+      }
+
+      vec3 getSeaPoint(vec2 xz) {
+        return vec3(xz.x, getSeaHeight(xz), xz.y);
+      }
+
       // Monochrome nocturne sea shading.
       vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
         float fresnel = clamp(1.0 - dot(n, -eye), 0.0, 1.0);
@@ -540,17 +571,49 @@
         return col;
       }
 
-      float wireLine(float coord, float scale, float width) {
-        float cell = abs(fract(coord * scale) - 0.5);
-        return 1.0 - smoothstep(width, width + 0.012, cell);
+      vec2 projectToScreen(vec3 world, vec3 ori, mat3 rot) {
+        vec3 cam = (world - ori) * transposeMat3(rot);
+        if (cam.z >= -0.001) {
+          return vec2(-10.0);
+        }
+
+        float aspect = iResolution.x / iResolution.y;
+        vec2 proj = cam.xy / -cam.z * 3.6;
+        return vec2(proj.x / aspect, proj.y) * 0.5 + 0.5;
       }
 
-      vec3 getWireSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
-        float lineX = wireLine(p.x, 0.28, 0.016);
-        float lineZ = wireLine(p.z, 0.38, 0.016);
-        float lines = max(lineX, lineZ);
-        float binary = step(0.12, lines);
-        return vec3(binary);
+      float segmentDistance(vec2 p, vec2 a, vec2 b) {
+        vec2 ba = b - a;
+        float denom = max(dot(ba, ba), 0.0001);
+        float h = clamp(dot(p - a, ba) / denom, 0.0, 1.0);
+        return length(p - (a + ba * h));
+      }
+
+      float edgeWire(vec2 st, vec2 a, vec2 b) {
+        float width = mix(0.45, 1.25, pow(clamp(st.y, 0.0, 1.0), 1.6)) / iResolution.y;
+        float feather = width * 2.4;
+        float d = segmentDistance(st, a, b);
+        return 1.0 - smoothstep(width, feather, d);
+      }
+
+      vec3 getWireSeaColor(vec3 p, vec3 ori, mat3 rot, vec2 st, float trace) {
+        if (trace > 900.0) {
+          return vec3(0.0);
+        }
+
+        vec2 spacing = vec2(4.8, 3.2);
+        vec2 cell = floor(p.xz / spacing);
+        vec2 base = cell * spacing;
+        vec2 v00 = projectToScreen(getSeaPoint(base), ori, rot);
+        vec2 v10 = projectToScreen(getSeaPoint(base + vec2(spacing.x, 0.0)), ori, rot);
+        vec2 v01 = projectToScreen(getSeaPoint(base + vec2(0.0, spacing.y)), ori, rot);
+        vec2 v11 = projectToScreen(getSeaPoint(base + spacing), ori, rot);
+
+        float line = max(
+          max(edgeWire(st, v00, v10), edgeWire(st, v00, v01)),
+          max(edgeWire(st, v10, v11), edgeWire(st, v01, v11))
+        );
+        return vec3(step(0.12, line));
       }
 
       vec3 getNormal(vec3 p, float eps) {
@@ -587,17 +650,18 @@
         // gentle drift, no fisheye
         vec3 ang = vec3(sin(time*1.5)*0.02, sin(time*0.6)*0.05 + 0.16, time * 0.4);
         vec3 ori = vec3(0.0, 3.5, time * 3.0);
+        mat3 rot = fromEuler(ang);
         vec3 dir = normalize(vec3(uv.xy, -3.6));
-        dir = normalize(dir) * fromEuler(ang);
+        dir = normalize(dir) * rot;
 
         vec3 p;
-        heightMapTracing(ori, dir, p);
+        float trace = heightMapTracing(ori, dir, p);
         vec3 dist = p - ori;
         vec3 n = getNormal(p, dot(dist, dist) * EPSILON_NRM);
         vec3 light = normalize(vec3(0.0, 0.6, 0.8));
 
         vec3 seaColor = getSeaColor(p, n, light, dir, dist);
-        vec3 wireColor = getWireSeaColor(p, n, light, dir, dist);
+        vec3 wireColor = getWireSeaColor(p, ori, rot, st, trace);
         vec3 surface = st.x < 0.5 ? seaColor : wireColor;
         vec3 sky = getSkyColor(dir);
         vec3 background = st.x < 0.5 ? sky : vec3(0.0);
@@ -623,7 +687,13 @@
       void main() {
         // very slow drift
         float time = iTime * 0.06;
+        vec2 st = gl_FragCoord.xy / iResolution.xy;
         vec3 color = getPixel(gl_FragCoord.xy, time);
+
+        if (st.x >= 0.5) {
+          gl_FragColor = vec4(color, 1.0);
+          return;
+        }
 
         // tonemap & lift shadows a touch so the night is readable
         color = pow(color, vec3(0.78));
