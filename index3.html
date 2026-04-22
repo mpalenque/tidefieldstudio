@@ -3,23 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tidefield · nocturne</title>
+    <title>TIDE FIELD STUDIO</title>
     <meta
       name="description"
-      content="tidefield studio — monochrome nocturne seascape (shader by TDM, CC BY-NC-SA 3.0)."
+      content="Tide Field Studio is an independent creative and innovation studio designing immersive experiences, interactive installations, and generative systems."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&family=JetBrains+Mono:wght@400&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400&display=swap"
       rel="stylesheet"
     />
     <style>
       :root {
         color-scheme: dark;
-        --bg: #000000;
+        --bg: #020306;
+        --bg-soft: #090c12;
         --ink: #f4f6fb;
-        --mute: rgba(244, 246, 251, 0.45);
+        --mute: rgba(244, 246, 251, 0.5);
+        --soft: rgba(244, 246, 251, 0.72);
+        --line: rgba(244, 246, 251, 0.12);
       }
       * { box-sizing: border-box; }
       html, body { margin: 0; min-height: 100%; }
@@ -30,10 +33,20 @@
         min-height: 100vh;
         overflow-x: hidden;
       }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at top left, rgba(255,255,255,0.06), transparent 28%),
+          linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.02) 100%);
+        opacity: 0.7;
+      }
       .header {
         position: relative;
         width: 100%;
-        height: clamp(320px, 56vh, 560px);
+        min-height: clamp(420px, 76vh, 760px);
         background: #000;
         overflow: hidden;
       }
@@ -48,8 +61,8 @@
         inset: 0;
         pointer-events: none;
         background:
-          radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.6) 100%),
-          linear-gradient(180deg, rgba(0,0,0,0.35) 0%, transparent 18%, transparent 70%, rgba(0,0,0,0.95) 100%);
+          radial-gradient(ellipse at center, transparent 48%, rgba(0,0,0,0.66) 100%),
+          linear-gradient(180deg, rgba(0,0,0,0.24) 0%, transparent 18%, rgba(2,3,6,0.1) 52%, rgba(2,3,6,0.88) 82%, rgba(2,3,6,1) 100%);
       }
       .topbar {
         position: absolute;
@@ -65,65 +78,315 @@
         text-transform: uppercase;
         color: var(--mute);
       }
-      .shell {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 1rem;
-        text-align: center;
-        padding: clamp(2rem, 6vw, 4rem) 1.5rem clamp(3rem, 8vw, 5rem);
+      .hero {
+        position: relative;
+        z-index: 1;
+        width: min(1100px, calc(100% - 2.5rem));
+        margin: 0 auto;
+        padding: clamp(6rem, 11vw, 9rem) 0 clamp(3rem, 8vw, 5rem);
+      }
+      .eyebrow,
+      .section-label,
+      .entry-meta,
+      .reference {
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--mute);
+      }
+      .eyebrow {
+        margin: 0 0 1rem;
       }
       .wordmark {
         margin: 0;
         font-family: "Inter", system-ui, sans-serif;
         font-weight: 200;
-        font-size: clamp(2.6rem, 8vw, 6rem);
-        letter-spacing: -0.045em;
-        line-height: 1;
-        text-transform: lowercase;
+        font-size: clamp(3.2rem, 9vw, 7rem);
+        letter-spacing: -0.075em;
+        line-height: 0.94;
+        text-transform: uppercase;
+        color: var(--ink);
+        max-width: 9ch;
+      }
+      .lede {
+        max-width: 52rem;
+        margin: 1.5rem 0 0;
+        font-size: clamp(1.08rem, 2vw, 1.4rem);
+        line-height: 1.8;
+        color: var(--soft);
+      }
+      .shell {
+        width: min(1100px, calc(100% - 2.5rem));
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+        margin-top: clamp(-5rem, -8vw, -3rem);
+        padding: clamp(5rem, 9vw, 7rem) 0 clamp(4rem, 8vw, 6rem);
+        background: linear-gradient(180deg, rgba(2,3,6,0) 0%, rgba(2,3,6,0.78) 6rem, var(--bg) 14rem);
+      }
+      .section {
+        display: grid;
+        grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+        gap: 2.25rem;
+        padding: 2.25rem 0;
+        border-top: 1px solid var(--line);
+      }
+      .section-content {
+        display: grid;
+        gap: 1.4rem;
+      }
+      .section-title {
+        margin: 0;
+        font-size: clamp(1.8rem, 3vw, 2.8rem);
+        font-weight: 300;
+        letter-spacing: -0.05em;
+        line-height: 1.06;
+      }
+      .section-copy {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.4rem;
+      }
+      .section-copy p,
+      .entry p,
+      .closing p {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.85;
+        color: var(--soft);
+      }
+      .entry-list {
+        display: grid;
+        gap: 1.2rem;
+      }
+      .entry {
+        padding-top: 1.2rem;
+        border-top: 1px solid rgba(244, 246, 251, 0.08);
+      }
+      .entry:first-child {
+        padding-top: 0;
+        border-top: 0;
+      }
+      .entry h3 {
+        margin: 0.45rem 0 0.65rem;
+        font-size: 1.35rem;
+        font-weight: 400;
+        letter-spacing: -0.035em;
+        line-height: 1.18;
+      }
+      .entry-meta {
+        margin: 0;
+      }
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--line);
+      }
+      .reference {
+        text-decoration: none;
+        transition: color 180ms ease;
+      }
+      .reference:hover {
         color: var(--ink);
       }
-      .wordmark em { font-style: normal; color: var(--mute); }
-      .tagline {
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 11px;
-        letter-spacing: 0.32em;
-        text-transform: uppercase;
-        color: var(--mute);
-      }
-      .credit {
-        margin-top: 0.5rem;
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 10px;
-        letter-spacing: 0.16em;
-        color: rgba(244, 246, 251, 0.22);
-        text-decoration: none;
-      }
-      .credit:hover { color: rgba(244, 246, 251, 0.6); }
       @media (max-width: 640px) {
-        .header { height: clamp(220px, 42vh, 360px); }
+        .header { min-height: clamp(380px, 72vh, 620px); }
         .topbar { font-size: 10px; letter-spacing: 0.12em; }
-        .wordmark { font-size: clamp(2rem, 14vw, 3.6rem); }
+        .hero,
+        .shell { width: min(100% - 1.5rem, 1100px); }
+        .hero { padding-top: 5.4rem; }
+        .wordmark { font-size: clamp(2.6rem, 16vw, 4.5rem); }
+        .section {
+          grid-template-columns: 1fr;
+          gap: 1.1rem;
+        }
+        .section-copy {
+          grid-template-columns: 1fr;
+        }
+        .footer {
+          flex-direction: column;
+          align-items: flex-start;
+        }
       }
     </style>
   </head>
   <body>
-    <header class="header" aria-label="tidefield">
+    <header class="header" aria-label="Tide Field Studio">
       <canvas id="scene"></canvas>
       <div class="topbar">
-        <span>tidefield · studio</span>
+        <span>TIDE FIELD STUDIO</span>
         <span id="clock">— · —</span>
+      </div>
+      <div class="hero">
+        <p class="eyebrow">Independent creative and innovation studio</p>
+        <h1 class="wordmark">TIDE FIELD STUDIO</h1>
+        <p class="lede">
+          An independent creative and innovation studio. We design and produce
+          immersive experiences, interactive installations, and generative
+          systems from first concept through final delivery.
+        </p>
       </div>
     </header>
 
     <main class="shell">
-      <h1 class="wordmark">tide<em>·</em>field</h1>
-      <p class="tagline">interactive design · motion · code</p>
-      <a class="credit"
-         href="https://www.shadertoy.com/view/Ms2SD1"
-         target="_blank"
-         rel="noopener noreferrer">shader: seascape · tdm · cc by-nc-sa 3.0</a>
+      <section class="section" aria-labelledby="studio-title">
+        <p class="section-label">Studio</p>
+        <div class="section-content">
+          <h2 class="section-title" id="studio-title">From first concept through final delivery.</h2>
+          <div class="section-copy">
+            <p>
+              We offer services in creative strategy, experience design,
+              spatial design, and interactive production. We work with brands,
+              cultural institutions, and live event producers.
+            </p>
+            <p>
+              Headquartered in Buenos Aires. Delivering on-site across the
+              Americas, Europe, and beyond.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="services-title">
+        <p class="section-label">What we do</p>
+        <div class="section-content">
+          <h2 class="section-title" id="services-title">Strategy, space, interaction, and production.</h2>
+          <div class="entry-list">
+            <article class="entry">
+              <p class="entry-meta">01</p>
+              <h3>Concept and creative strategy.</h3>
+              <p>
+                We work upstream, defining what an experience should be before
+                any technology or space is decided. We turn objectives into
+                experience concepts with a clear audience logic and production
+                direction.
+              </p>
+            </article>
+            <article class="entry">
+              <p class="entry-meta">02</p>
+              <h3>Experience and spatial design.</h3>
+              <p>
+                We design how a space feels and behaves. Light, sound,
+                movement, interaction. We deliver creative direction and
+                technical specifications, executable by our team or external
+                partners.
+              </p>
+            </article>
+            <article class="entry">
+              <p class="entry-meta">03</p>
+              <h3>Interactive and generative production.</h3>
+              <p>
+                We build what we design. Real-time audiovisual systems,
+                sensor-driven environments, generative visuals, and
+                large-format installations. End-to-end, from prototype to
+                on-site operation.
+              </p>
+            </article>
+            <article class="entry">
+              <p class="entry-meta">04</p>
+              <h3>Merging native digital creativity, art and industry.</h3>
+              <p>
+                We merge native digital creativity, art, and industry,
+                exploring the frictions between physical and digital realities.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="work-title">
+        <p class="section-label">Selected work</p>
+        <div class="section-content">
+          <h2 class="section-title" id="work-title">Client and public-facing productions.</h2>
+          <div class="entry-list">
+            <article class="entry">
+              <p class="entry-meta">Bright Moments / Buenos Aires</p>
+              <h3>Live generative minting performance.</h3>
+              <p>
+                We led creative strategy, general production, creative
+                direction, and end-to-end realization for the live minting
+                event, building a real-time performance system that translated
+                on-chain parameters into stage cues, lighting, and audiovisual
+                behavior across an eight-hour program.
+              </p>
+            </article>
+            <article class="entry">
+              <p class="entry-meta">Bright Moments / Venezia</p>
+              <h3>Interactive installation in a Renaissance church.</h3>
+              <p>
+                We led creative strategy, general production, creative
+                direction, and end-to-end realization for an immersive
+                installation combining real-time fluid simulation, responsive
+                lighting, physical water elements, and generative music,
+                calibrated to the site and delivered for a public-facing
+                exhibition.
+              </p>
+            </article>
+            <article class="entry">
+              <p class="entry-meta">Messi Challenge</p>
+              <h3>VR experience for Cirque du Soleil&apos;s Messi10.</h3>
+              <p>
+                A public-facing VR lounge experience placing visitors inside a
+                stadium at the emotional peak of a World Cup final, designed
+                for continuous operation across repeated sessions.
+              </p>
+            </article>
+            <article class="entry">
+              <p class="entry-meta">Vendimia</p>
+              <h3>19,000-capacity live spectacle A/V system.</h3>
+              <p>
+                End-to-end design and integration of a synchronized
+                audiovisual architecture for a large-scale outdoor amphitheatre
+                show, unifying visuals, lighting, and real-time systems across
+                a stage shared by more than 500 performers.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="research-title">
+        <p class="section-label">Research and own work</p>
+        <div class="section-content">
+          <h2 class="section-title" id="research-title">Self-initiated projects outside the client pipeline.</h2>
+          <div class="closing">
+            <p>
+              We develop self-initiated projects outside the client pipeline,
+              experiments and installations that feed directly back into how we
+              work. The studio has shown this work at international festivals
+              and exhibitions.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="engage-title">
+        <p class="section-label">How we engage</p>
+        <div class="section-content closing">
+          <h2 class="section-title" id="engage-title">From first idea or from a finished brief.</h2>
+          <p>
+            We engage from first idea or from a finished brief. Our team
+            handles concept, design, and production in-house, with a track
+            record of delivery across the United States, Europe, and Latin
+            America.
+          </p>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p class="section-label">Buenos Aires / Global delivery</p>
+        <a
+          class="reference"
+          href="https://farazzshaikh.github.io/THREE-CustomShaderMaterial/#/waves"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Waves reference</a
+        >
+      </footer>
     </main>
 
     <script id="vs" type="x-shader/x-vertex">
@@ -266,6 +529,24 @@
         return col;
       }
 
+      vec3 getWireSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
+        vec2 gridUv = p.xz * vec2(0.34, 0.46);
+        vec2 grid = abs(fract(gridUv) - 0.5);
+          vec2 aa = vec2(0.018);
+        float lineX = 1.0 - smoothstep(0.0, aa.x, grid.x);
+        float lineY = 1.0 - smoothstep(0.0, aa.y, grid.y);
+        float lines = max(lineX, lineY);
+
+        float fresnel = pow(clamp(1.0 - dot(n, -eye), 0.0, 1.0), 2.5);
+        float moon = diffuse(n, normalize(vec3(-0.4, 0.8, -0.5)), 18.0);
+        float depth = max(1.0 - dot(dist, dist) * 0.0008, 0.0);
+
+        vec3 base = vec3(0.016 + moon * 0.045 + fresnel * 0.04);
+        vec3 wire = vec3(0.82) * lines;
+        vec3 foam = vec3(max(p.y - SEA_HEIGHT + 0.18, 0.0) * 0.18 * depth);
+        return base + wire + foam;
+      }
+
       vec3 getNormal(vec3 p, float eps) {
         vec3 n;
         n.y = map_detailed(p);
@@ -293,8 +574,8 @@
       }
 
       vec3 getPixel(in vec2 coord, float time) {
-        vec2 uv = coord / iResolution.xy;
-        uv = uv * 2.0 - 1.0;
+        vec2 st = coord / iResolution.xy;
+        vec2 uv = st * 2.0 - 1.0;
         uv.x *= iResolution.x / iResolution.y;
 
         // gentle drift, no fisheye
@@ -309,10 +590,20 @@
         vec3 n = getNormal(p, dot(dist, dist) * EPSILON_NRM);
         vec3 light = normalize(vec3(0.0, 0.6, 0.8));
 
-        return mix(
-          getSkyColor(dir),
-          getSeaColor(p, n, light, dir, dist),
+        vec3 seaColor = getSeaColor(p, n, light, dir, dist);
+        vec3 wireColor = getWireSeaColor(p, n, light, dir, dist);
+        vec3 surface = st.x < 0.5 ? seaColor : wireColor;
+        vec3 sky = getSkyColor(dir);
+        float divider = 1.0 - smoothstep(0.0, 0.0025, abs(st.x - 0.5));
+
+        vec3 color = mix(
+          sky,
+          surface,
           pow(smoothstep(0.0, -0.02, dir.y), 0.2));
+
+        color = mix(color, vec3(0.75), divider * 0.28);
+
+        return color;
       }
 
       // small hash for grain
@@ -426,8 +717,9 @@
           const off = -d.getTimezoneOffset() / 60;
           const sign = off >= 0 ? "+" : "-";
           clockEl.textContent =
+            "Buenos Aires / " +
             pad(d.getHours()) + ":" + pad(d.getMinutes()) +
-            " · utc" + sign + pad(Math.abs(off));
+            " UTC" + sign + pad(Math.abs(off));
         }
         tick();
         setInterval(tick, 30000);
