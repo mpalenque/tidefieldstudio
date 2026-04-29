@@ -1,0 +1,7 @@
+.DS_Store
+tmp_pdf_sheets/
+tmp_pdf_sheets_immersive/
+Immersive portfolio.pdf
+assets/videos/*.mp4
+assets/videos/*.mov
+assets/videos/*.MOV
