@@ -709,7 +709,7 @@
         float atten = max(1.0 - dot(dist, dist) * 0.001, 0.0);
 
         // --- blue day ocean (scroll = 0) ---
-        vec3 dayLight = normalize(vec3(0.313, 0.55, -0.774));
+        vec3 dayLight = l;
         vec3 deep_blue = vec3(0.008, 0.040, 0.130);
         vec3 mid_blue  = vec3(0.020, 0.090, 0.220);
         vec3 ref_blue  = mix(deep_blue, mid_blue, depth);
@@ -738,21 +738,18 @@
         return mix(col_blue, col_sun, sunset);
       }
 
-      // Monochrome nocturne sea shading.
+      // Monochrome sea shading using the same sun/sky as the color panel.
       vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
         float fresnel = clamp(1.0 - dot(n, -eye), 0.0, 1.0);
         fresnel = pow(fresnel, 3.0) * 0.55;
 
-        // a single moonlight contribution, monochrome
-        vec3 moonDir = normalize(vec3(-0.4, 0.8, -0.5));
-        float diffMoon = diffuse(n, moonDir, 36.0);
-        float diffKey  = diffuse(n, l, 80.0);
+        float diffSun = diffuse(n, l, 68.0);
 
-        float base = 0.012;                  // deep night water
-        float body = base + diffMoon * 0.10 + diffKey * 0.04;
+        float base = 0.012;
+        float body = base + diffSun * 0.13;
 
-        // sky reflection (already monochrome)
-        vec3 reflected = getSkyColor(reflect(eye, n));
+        // Same sky model as quadrant 3, converted by the middle-panel grade later.
+        vec3 reflected = getColorSkyColor(reflect(eye, n));
 
         vec3 col = mix(vec3(body), reflected, fresnel);
 
@@ -760,9 +757,8 @@
         float atten = max(1.0 - dot(dist, dist) * 0.001, 0.0);
         col += vec3((p.y - SEA_HEIGHT) * 0.18 * atten * 0.7);
 
-        // moon highlight
-        col += vec3(specular(n, moonDir, eye, 90.0)) * 0.45;
-        col += vec3(specular(n, l, eye, 180.0)) * 0.10;
+        col += vec3(specular(n, l, eye, 260.0)) * 0.36;
+        col += vec3(specular(n, l, eye, 48.0)) * 0.12;
         return col;
       }
 
@@ -785,8 +781,8 @@
       }
 
       float edgeWire(vec2 st, vec2 a, vec2 b) {
-        float width = mix(0.40, 1.15, pow(clamp(st.y, 0.0, 1.0), 1.35)) / iResolution.y;
-        float feather = width * 2.1;
+        float width = 0.42 / iResolution.y;
+        float feather = width * 1.45;
         float d = segmentDistance(st, a, b);
         return 1.0 - smoothstep(width, feather, d);
       }
@@ -807,8 +803,10 @@
 
       vec3 getWireSeaColor(vec3 p, vec3 ori, mat3 rot, vec2 st, float trace) {
         float invert = mouseControl();
+        vec3 background = vec3(invert);
+        vec3 wire = vec3(1.0 - invert);
         if (trace > 900.0) {
-          return vec3(invert);
+          return background;
         }
 
         vec2 spacing = vec2(3.2, 2.2);
@@ -821,9 +819,8 @@
           }
         }
 
-        line = smoothstep(0.05, 0.92, line);
-        line = pow(line, 0.82);
-        return mix(vec3(line), vec3(1.0 - line), invert);
+        line = smoothstep(0.08, 0.92, line);
+        return mix(background, wire, line);
       }
 
       vec3 getNormal(vec3 p, float eps) {
@@ -868,8 +865,7 @@
         float trace = heightMapTracing(ori, dir, p);
         vec3 dist = p - ori;
         vec3 n = getNormal(p, dot(dist, dist) * EPSILON_NRM);
-        vec3 light      = normalize(vec3(0.0, 0.6, 0.8));           // mono panel
-        vec3 colorLight = getSunDir();                              // color panel — follows horizontal input
+        vec3 sunLight = getSunDir();                                // shared sun for panels 2 and 3
 
         // Three panels: left=wireframe, middle=mono shaded, right=color
         bool isLeft   = st.x < 0.3333;
@@ -879,14 +875,17 @@
         vec3 surface;
         vec3 background;
 
+        // Pure ultra-thin mesh: no shaded sea fill, just wire over a flat field.
         if (isLeft) {
-          surface = getWireSeaColor(p, ori, rot, st, trace);
-          background = vec3(mouseControl());
+          vec3 wireColor = getWireSeaColor(p, ori, rot, st, trace);
+          float px = 1.0 / iResolution.x;
+          float divider = (abs(st.x - 0.3333) < px * 0.5) ? 1.0 : 0.0;
+          return mix(wireColor, vec3(1.0), divider);
         } else if (isMiddle) {
-          surface = getSeaColor(p, n, light, dir, dist);
-          background = getSkyColor(dir);
+          surface = getSeaColor(p, n, sunLight, dir, dist);
+          background = getColorSkyColor(dir);
         } else {
-          surface = getColorSeaColor(p, n, colorLight, dir, dist);
+          surface = getColorSeaColor(p, n, sunLight, dir, dist);
           background = getColorSkyColor(dir);
         }
 
