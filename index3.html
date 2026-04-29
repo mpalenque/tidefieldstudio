@@ -135,6 +135,9 @@
       .wordmark-line--studio {
         display: inline-block;
       }
+      .wordmark-o {
+        display: inline-block;
+      }
       .lede {
         max-width: 48rem;
         margin: 1.1rem 0 0;
@@ -321,9 +324,9 @@
       </div>
       <div class="hero">
         <p class="eyebrow">Independent creative and innovation studio</p>
-        <h1 class="wordmark">
-          <span class="wordmark-line">TIDE FIELD</span>
-          <span class="wordmark-line wordmark-line--studio">STUDIO</span>
+        <h1 class="wordmark" aria-label="TIDE FIELD STUDIO">
+          <span class="wordmark-line" aria-hidden="true">TIDE FIELD</span>
+          <span class="wordmark-line wordmark-line--studio" aria-hidden="true">STUDI<span class="wordmark-o">O</span></span>
         </h1>
         <p class="lede">
           An independent creative and innovation studio. We design and produce
@@ -666,25 +669,31 @@
         return vec3(xz.x, getSeaHeight(xz), xz.y);
       }
 
-      // Horizontal movement controls sunset energy. Left = blue, right = warm sunset.
-      vec3 SUN_DIR_BLUE = normalize(vec3(0.313, 0.55, -0.774));
-      vec3 SUN_DIR_SUN  = normalize(vec3(0.313, 0.10, -0.944));
-
       float mouseControl() {
         return smoothstep(0.02, 0.98, clamp(iMouseX, 0.0, 1.0));
       }
 
+      float sunTravel() {
+        return mouseControl();
+      }
+
       float sunsetControl() {
+        float horizonWarmth = pow(abs(sunTravel() * 2.0 - 1.0), 0.70);
         float scrollWarmth = smoothstep(0.0, 0.85, iScrollY) * 0.32;
-        return clamp(max(mouseControl(), scrollWarmth), 0.0, 1.0);
+        return clamp(max(horizonWarmth * 0.92, scrollWarmth), 0.0, 1.0);
       }
 
       vec3 getSunDir() {
-        return normalize(mix(SUN_DIR_BLUE, SUN_DIR_SUN, sunsetControl()));
+        float t = sunTravel();
+        float azimuth = mix(-1.18, 1.18, t);
+        float rise = max(sin(t * PI), 0.0);
+        float elevation = mix(0.08, 0.58, pow(rise, 0.82));
+        return normalize(vec3(sin(azimuth) * 1.04, elevation, -0.45 - cos(azimuth) * 0.58));
       }
 
       vec3 getColorSkyColor(vec3 e) {
         float sunset = sunsetControl();
+        vec3 sunDir = getSunDir();
         float y  = clamp(e.y,  0.0, 1.0);
         float hy = clamp(-e.y, 0.0, 1.0);
 
@@ -694,7 +703,7 @@
         vec3 sky_blue = mix(horizon_blue, zenith_blue, smoothstep(0.0, 0.75, y));
         sky_blue = mix(sky_blue, vec3(0.72, 0.84, 0.95), exp(-y * 8.0) * 0.30); // haze
         // white-yellow sun high in sky
-        float sd_b = max(dot(e, SUN_DIR_BLUE), 0.0);
+        float sd_b = max(dot(e, sunDir), 0.0);
         sky_blue += vec3(1.8, 1.8, 1.4) * pow(sd_b, 8000.0);
         sky_blue += vec3(0.6, 0.6, 0.5) * pow(sd_b, 60.0) * 0.12;
         sky_blue = mix(sky_blue, vec3(0.38, 0.55, 0.75), hy * 0.8);
@@ -706,7 +715,7 @@
         vec3 sky_sun = mix(horizon_sun, mid_sun,   smoothstep(0.0, 0.22, y));
         sky_sun       = mix(sky_sun,   zenith_sun, smoothstep(0.22, 0.80, y));
         sky_sun       = mix(sky_sun, vec3(0.72, 0.34, 0.18), exp(-y * 10.0) * 0.32);
-        float sd_s = max(dot(e, getSunDir()), 0.0);
+        float sd_s = max(dot(e, sunDir), 0.0);
         sky_sun += vec3(2.0, 1.4, 0.50) * pow(sd_s, 6000.0);
         sky_sun += vec3(0.95, 0.50, 0.16) * pow(sd_s, 90.0) * 0.38;
         sky_sun += vec3(0.55, 0.22, 0.05) * pow(sd_s, 14.0) * 0.12;
@@ -971,6 +980,9 @@
         const canvas = document.getElementById("scene");
         const wordmarkEl = document.querySelector(".wordmark");
         const studioLineEl = document.querySelector(".wordmark-line--studio");
+        const studioOLetterEl = document.querySelector(".wordmark-o");
+        const textMeasureCanvas = document.createElement("canvas");
+        const textMeasureContext = textMeasureCanvas.getContext("2d");
 
         let wordmarkAlignTicking = false;
         function alignWordmarkToQuadrant() {
@@ -979,15 +991,29 @@
           wordmarkEl.style.removeProperty("--wordmark-fit");
           if (window.innerWidth <= 640) return;
 
-          const headerRect = headerEl.getBoundingClientRect();
-          const studioRect = studioLineEl.getBoundingClientRect();
-          const targetRight = headerRect.left + headerRect.width / 3;
-          const targetWidth = targetRight - studioRect.left;
-          if (targetWidth <= 0 || studioRect.width <= 0) return;
+          for (let i = 0; i < 4; i++) {
+            const headerRect = headerEl.getBoundingClientRect();
+            const studioRect = studioLineEl.getBoundingClientRect();
+            const oRect = studioOLetterEl ? studioOLetterEl.getBoundingClientRect() : studioRect;
+            const targetRight = headerRect.left + headerRect.width / 3;
+            if (studioRect.width <= 0) return;
 
-          const currentSize = parseFloat(getComputedStyle(wordmarkEl).fontSize);
-          const nextSize = Math.max(48, Math.min(150, currentSize * (targetWidth / studioRect.width)));
-          wordmarkEl.style.setProperty("--wordmark-fit", nextSize.toFixed(2) + "px");
+            const styles = getComputedStyle(wordmarkEl);
+            const currentSize = parseFloat(styles.fontSize);
+            let oRightSideBearing = 0;
+            if (textMeasureContext && studioOLetterEl) {
+              textMeasureContext.font = `${styles.fontWeight} ${styles.fontSize} ${styles.fontFamily}`;
+              const metrics = textMeasureContext.measureText("O");
+              oRightSideBearing = Math.max(0, metrics.width - (metrics.actualBoundingBoxRight || metrics.width));
+            }
+
+            const visualORight = oRect.right - oRightSideBearing;
+            const error = targetRight - visualORight;
+            if (Math.abs(error) < 0.15) return;
+
+            const nextSize = Math.max(48, Math.min(150, currentSize + error * (currentSize / studioRect.width)));
+            wordmarkEl.style.setProperty("--wordmark-fit", nextSize.toFixed(2) + "px");
+          }
         }
 
         function requestWordmarkAlign() {
