@@ -116,15 +116,24 @@
         margin: 0 0 1rem;
       }
       .wordmark {
+        --wordmark-size: clamp(3.2rem, 9vw, 7rem);
         margin: 0;
         font-family: "Inter", system-ui, sans-serif;
         font-weight: 200;
-        font-size: clamp(3.2rem, 9vw, 7rem);
-        letter-spacing: -0.075em;
-        line-height: 0.94;
+        font-size: var(--wordmark-fit, var(--wordmark-size));
+        letter-spacing: -0.083em;
+        line-height: 0.88;
         text-transform: uppercase;
         color: var(--ink);
-        max-width: 9ch;
+        max-width: none;
+        width: max-content;
+      }
+      .wordmark-line {
+        display: block;
+        white-space: nowrap;
+      }
+      .wordmark-line--studio {
+        display: inline-block;
       }
       .lede {
         max-width: 48rem;
@@ -272,7 +281,10 @@
         .hero,
         .shell { width: min(100% - 1.5rem, 1100px); }
         .hero { bottom: clamp(0.45rem, 1.8vh, 0.9rem); }
-        .wordmark { font-size: clamp(2.45rem, 14vw, 4.2rem); }
+        .wordmark {
+          --wordmark-size: clamp(2.45rem, 14vw, 4.2rem);
+          letter-spacing: -0.078em;
+        }
         .lede {
           margin-top: 0.95rem;
           font-size: clamp(0.95rem, 3.8vw, 1.04rem);
@@ -309,7 +321,10 @@
       </div>
       <div class="hero">
         <p class="eyebrow">Independent creative and innovation studio</p>
-        <h1 class="wordmark">TIDE FIELD STUDIO</h1>
+        <h1 class="wordmark">
+          <span class="wordmark-line">TIDE FIELD</span>
+          <span class="wordmark-line wordmark-line--studio">STUDIO</span>
+        </h1>
         <p class="lede">
           An independent creative and innovation studio. We design and produce
           immersive experiences, interactive installations, and generative
@@ -954,6 +969,39 @@
       (function () {
         const headerEl = document.querySelector(".header");
         const canvas = document.getElementById("scene");
+        const wordmarkEl = document.querySelector(".wordmark");
+        const studioLineEl = document.querySelector(".wordmark-line--studio");
+
+        let wordmarkAlignTicking = false;
+        function alignWordmarkToQuadrant() {
+          wordmarkAlignTicking = false;
+          if (!wordmarkEl || !studioLineEl) return;
+          wordmarkEl.style.removeProperty("--wordmark-fit");
+          if (window.innerWidth <= 640) return;
+
+          const headerRect = headerEl.getBoundingClientRect();
+          const studioRect = studioLineEl.getBoundingClientRect();
+          const targetRight = headerRect.left + headerRect.width / 3;
+          const targetWidth = targetRight - studioRect.left;
+          if (targetWidth <= 0 || studioRect.width <= 0) return;
+
+          const currentSize = parseFloat(getComputedStyle(wordmarkEl).fontSize);
+          const nextSize = Math.max(48, Math.min(150, currentSize * (targetWidth / studioRect.width)));
+          wordmarkEl.style.setProperty("--wordmark-fit", nextSize.toFixed(2) + "px");
+        }
+
+        function requestWordmarkAlign() {
+          if (wordmarkAlignTicking) return;
+          wordmarkAlignTicking = true;
+          requestAnimationFrame(alignWordmarkToQuadrant);
+        }
+
+        requestWordmarkAlign();
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(requestWordmarkAlign);
+        }
+        window.addEventListener("resize", requestWordmarkAlign);
+
         const gl =
           canvas.getContext("webgl", { antialias: false, alpha: false }) ||
           canvas.getContext("experimental-webgl");
