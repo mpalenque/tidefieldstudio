@@ -314,6 +314,9 @@
         overflow: hidden;
         border: 1px solid rgba(244, 246, 251, 0.08);
         background: rgba(244, 246, 251, 0.04);
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
       }
       .entry-media--interactive {
         cursor: pointer;
@@ -336,6 +339,11 @@
         object-fit: cover;
         filter: saturate(0.9) contrast(1.05) brightness(0.9);
         background: #020306;
+        opacity: 0;
+        transition: opacity 180ms ease;
+      }
+      .entry-media video[data-frame-ready="true"] {
+        opacity: 1;
       }
       .entry-media--pair {
         display: grid;
@@ -387,6 +395,9 @@
         border-radius: 0;
         color: var(--ink);
         background: #020306;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
         cursor: pointer;
         text-align: left;
       }
@@ -397,7 +408,11 @@
         object-fit: cover;
         filter: saturate(0.82) contrast(1.08) brightness(0.76);
         transform: scale(1.01);
-        transition: filter 220ms ease, transform 520ms ease;
+        opacity: 0;
+        transition: opacity 180ms ease, filter 220ms ease, transform 520ms ease;
+      }
+      .archive-video-card video[data-frame-ready="true"] {
+        opacity: 1;
       }
       .archive-video-card::after {
         content: "";
@@ -474,6 +489,9 @@
         overflow: hidden;
         border: 1px solid rgba(244, 246, 251, 0.14);
         background: #000;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: contain;
         box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.42);
       }
       .video-lightbox__frame video {
@@ -482,6 +500,11 @@
         height: 100%;
         object-fit: contain;
         background: #000;
+        opacity: 0;
+        transition: opacity 180ms ease;
+      }
+      .video-lightbox__frame video[data-frame-ready="true"] {
+        opacity: 1;
       }
       .video-lightbox__bar {
         display: flex;
@@ -1668,8 +1691,63 @@
         let activeMobileCard = null;
         let mobilePreviewFrame = 0;
 
+        function escapeCssUrl(url) {
+          return String(url).replace(/(["\\])/g, "\\$1");
+        }
+
+        function getVideoSurface(video) {
+          return video ? video.closest(".archive-video-card, .entry-media, .video-lightbox__frame") : null;
+        }
+
+        function syncVideoPoster(video) {
+          const surface = getVideoSurface(video);
+          if (!surface || !video || !video.poster) return;
+          surface.style.backgroundImage = `url("${escapeCssUrl(video.poster)}")`;
+        }
+
+        function setVideoFrameReady(video, isReady) {
+          if (!video) return;
+          video.dataset.frameReady = isReady ? "true" : "false";
+        }
+
+        function requestVideoPlayback(video) {
+          if (!video || document.hidden) return;
+          video.dataset.playRequested = "true";
+          if (video.readyState < 2) {
+            setVideoFrameReady(video, false);
+            video.load();
+            return;
+          }
+          setVideoFrameReady(video, true);
+          const playPromise = video.play();
+          if (playPromise) playPromise.catch(function () {});
+        }
+
+        function setupVideoSurface(video) {
+          if (!video || video.dataset.surfaceReady === "true") return;
+          video.dataset.surfaceReady = "true";
+          syncVideoPoster(video);
+          setVideoFrameReady(video, video.readyState >= 2);
+          video.addEventListener("loadeddata", function () {
+            syncVideoPoster(video);
+            setVideoFrameReady(video, true);
+            if (video.dataset.playRequested === "true" && !document.hidden) {
+              const playPromise = video.play();
+              if (playPromise) playPromise.catch(function () {});
+            }
+          });
+          video.addEventListener("emptied", function () {
+            setVideoFrameReady(video, false);
+          });
+          video.addEventListener("loadstart", function () {
+            syncVideoPoster(video);
+            if (video.readyState < 2) setVideoFrameReady(video, false);
+          });
+        }
+
         function ensureVideoSource(video, source) {
           if (!video || !source || video.dataset.loaded === "true") return;
+          setupVideoSurface(video);
           video.src = source;
           video.dataset.loaded = "true";
           video.load();
@@ -1680,34 +1758,35 @@
           if (!video) return;
           ensureVideoSource(video, card.dataset.videoSrc);
           video.muted = true;
-          const playPromise = video.play();
-          if (playPromise) playPromise.catch(function () {});
+          requestVideoPlayback(video);
         }
 
         function pausePreview(card) {
           const video = card.querySelector("[data-hover-video]");
           if (!video) return;
+          video.dataset.playRequested = "false";
           video.pause();
         }
 
         function playAlwaysVideo(video) {
           if (!video || document.hidden) return;
+          setupVideoSurface(video);
           video.defaultMuted = true;
           video.muted = true;
           video.loop = true;
-          const playPromise = video.play();
-          if (playPromise) playPromise.catch(function () {});
+          requestVideoPlayback(video);
         }
 
         function playViewportVideo(video) {
           if (!video || document.hidden) return;
+          setupVideoSurface(video);
           video.muted = true;
-          const playPromise = video.play();
-          if (playPromise) playPromise.catch(function () {});
+          requestVideoPlayback(video);
         }
 
         function pauseViewportVideo(video) {
           if (!video) return;
+          video.dataset.playRequested = "false";
           video.pause();
         }
 
@@ -1801,6 +1880,9 @@
           lightboxVideo.pause();
           lightboxVideo.src = trigger.dataset.videoSrc;
           lightboxVideo.poster = trigger.dataset.videoPoster || "";
+          setupVideoSurface(lightboxVideo);
+          syncVideoPoster(lightboxVideo);
+          setVideoFrameReady(lightboxVideo, false);
           lightboxVideo.muted = trigger.dataset.videoAudio !== "on";
           lightboxVideo.volume = getRequestedVolume(trigger);
           lightboxVideo.currentTime = 0;
@@ -1811,15 +1893,16 @@
           lightbox.setAttribute("aria-label", trigger.dataset.videoTitle || "Archive video");
           document.body.classList.add("is-video-modal-open");
           requestFullscreenIfNeeded(trigger);
-          const playPromise = lightboxVideo.play();
-          if (playPromise) playPromise.catch(function () {});
+          requestVideoPlayback(lightboxVideo);
           if (closeButton) closeButton.focus({ preventScroll: true });
         }
 
         function closeLightbox() {
           if (!lightbox || !lightboxVideo || lightbox.hidden) return;
+          lightboxVideo.dataset.playRequested = "false";
           lightboxVideo.pause();
           lightboxVideo.removeAttribute("src");
+          setVideoFrameReady(lightboxVideo, false);
           lightboxVideo.load();
           lightbox.hidden = true;
           lightbox.classList.remove("is-fullscreen");
@@ -1855,12 +1938,16 @@
         });
 
         alwaysVideos.forEach((video) => {
+          setupVideoSurface(video);
           playAlwaysVideo(video);
-          video.addEventListener("loadeddata", () => playAlwaysVideo(video));
           video.addEventListener("pause", () => {
             if (!document.hidden) window.requestAnimationFrame(() => playAlwaysVideo(video));
           });
         });
+
+        hoverVideos.forEach(setupVideoSurface);
+        viewportVideos.forEach(setupVideoSurface);
+        if (lightboxVideo) setupVideoSurface(lightboxVideo);
 
         if ("IntersectionObserver" in window) {
           const observer = new IntersectionObserver((entries) => {
