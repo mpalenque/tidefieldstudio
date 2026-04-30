@@ -653,7 +653,7 @@
             </p>
           </div>
           <figure class="entry-media section-media entry-media--interactive" role="button" tabindex="0" aria-label="Open Tide Field Studio reel fullscreen with audio" data-video-src="./assets/videos/comp/reelold.webm" data-video-poster="./assets/videos/posters/reelold.jpg" data-video-title="Tide Field Studio reel" data-video-audio="on" data-video-volume="0.5" data-video-fullscreen="true">
-            <video autoplay muted loop playsinline preload="metadata" poster="./assets/videos/posters/reelold.jpg" aria-label="Tide Field Studio reel">
+            <video data-always-video autoplay muted loop playsinline preload="auto" poster="./assets/videos/posters/reelold.jpg" aria-label="Tide Field Studio reel">
               <source src="./assets/videos/comp/reelold.webm" type="video/webm" />
             </video>
           </figure>
@@ -1651,6 +1651,7 @@
       (function () {
         const cards = Array.from(document.querySelectorAll(".archive-video-card"));
         const featuredVideoTriggers = Array.from(document.querySelectorAll(".entry-media--interactive[data-video-src]"));
+        const alwaysVideos = Array.from(document.querySelectorAll("[data-always-video]"));
         const hoverVideos = cards.map((card) => card.querySelector("[data-hover-video]")).filter(Boolean);
         const viewportVideos = Array.from(document.querySelectorAll("[data-viewport-video]"));
         const lightbox = document.querySelector(".video-lightbox");
@@ -1684,6 +1685,15 @@
           const video = card.querySelector("[data-hover-video]");
           if (!video) return;
           video.pause();
+        }
+
+        function playAlwaysVideo(video) {
+          if (!video || document.hidden) return;
+          video.defaultMuted = true;
+          video.muted = true;
+          video.loop = true;
+          const playPromise = video.play();
+          if (playPromise) playPromise.catch(function () {});
         }
 
         function playViewportVideo(video) {
@@ -1841,6 +1851,14 @@
           });
         });
 
+        alwaysVideos.forEach((video) => {
+          playAlwaysVideo(video);
+          video.addEventListener("loadeddata", () => playAlwaysVideo(video));
+          video.addEventListener("pause", () => {
+            if (!document.hidden) window.requestAnimationFrame(() => playAlwaysVideo(video));
+          });
+        });
+
         if ("IntersectionObserver" in window) {
           const observer = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
@@ -1872,6 +1890,7 @@
           if (document.hidden) {
             viewportVideos.forEach(pauseViewportVideo);
           } else {
+            alwaysVideos.forEach(playAlwaysVideo);
             viewportVideos.forEach((video) => {
               if (isViewportVideoVisible(video)) playViewportVideo(video);
             });
