@@ -10,6 +10,15 @@
     })(window,document,'script','dataLayer','GTM-K68S7LCJ');</script>
     <!-- End Google Tag Manager -->
 
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1VPXPES8NY"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-1VPXPES8NY');
+    </script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ironside | The Breathing Space</title>
@@ -160,6 +169,35 @@ strong { color: inherit; font-weight: 650; }
     text-align: center;
     padding: 70px;
     background-color: var(--color-bg-dark);
+}
+
+.title-layout::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(7, 11, 16, 0.38);
+    z-index: 2;
+}
+
+.title-background-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(92vw, calc(84vh * 16 / 9));
+    max-width: 92vw;
+    max-height: 84vh;
+    aspect-ratio: 16 / 9;
+    height: auto;
+    object-position: center center;
+    object-fit: cover;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.title-layout > :not(.title-background-video) {
+    position: relative;
+    z-index: 3;
 }
 
 .title-layout h1 {
@@ -1497,7 +1535,7 @@ body.grid-view .priority-callout p { font-size: 8px; }
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-auto-rows: minmax(0, 1fr);
-    gap: 16px;
+    gap: 12px;
     height: 100%;
     align-content: stretch;
 }
@@ -1526,17 +1564,17 @@ body.grid-view .priority-callout p { font-size: 8px; }
 .placeholder-card--media {
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr) auto;
-    gap: 10px;
-    padding: 18px;
+    gap: 8px;
+    padding: 16px;
     min-height: 0;
 }
 
 .placeholder-card--media.placeholder-card--compact {
-    min-height: 248px;
+    min-height: 0;
 }
 
 .placeholder-card--media .placeholder-card__title {
-    font-size: 28px;
+    font-size: 22px;
 }
 
 .placeholder-card__media {
@@ -1548,7 +1586,8 @@ body.grid-view .priority-callout p { font-size: 8px; }
 }
 
 .placeholder-card__media--duo {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
 }
 
 .placeholder-card__frame {
@@ -1561,7 +1600,7 @@ body.grid-view .priority-callout p { font-size: 8px; }
     border-radius: 14px;
     border: 1px solid rgba(216,255,133,0.12);
     background: rgba(255,255,255,0.03);
-    padding: 10px;
+    padding: 6px;
 }
 
 .slide--light .placeholder-card__frame {
@@ -1569,11 +1608,11 @@ body.grid-view .priority-callout p { font-size: 8px; }
     background: rgba(26,46,40,0.04);
 }
 
-.placeholder-card__image {
+#slide-ai-emotion .placeholder-card__image {
     width: 100%;
     height: 100%;
     display: block;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center;
 }
 
@@ -1652,9 +1691,9 @@ body {
 }
 
 .slide-container {
-    padding: 48px 80px 80px;
+    padding: 40px 64px 56px;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
 }
 
 .slide-container > *,
@@ -1730,13 +1769,14 @@ p, li,
 
 .title-layout,
 .section-title-layout {
-    padding: 80px;
+    padding: 56px 64px;
+    overflow: hidden;
 }
 
 .title-layout h1 {
-    font-size: clamp(4.2rem, 8vw, 7.9rem);
-    max-width: 960px;
-    margin-bottom: 16px;
+    font-size: clamp(3.6rem, 7vw, 6.6rem);
+    max-width: 760px;
+    margin-bottom: 12px;
 }
 
 .section-title-layout h2 {
@@ -1745,26 +1785,26 @@ p, li,
 }
 
 .title-layout .subtitle {
-    max-width: 900px;
-    margin-bottom: 20px;
-    font-size: 22px;
-    line-height: 1.35;
+    max-width: 760px;
+    margin-bottom: 16px;
+    font-size: 18px;
+    line-height: 1.28;
     color: rgba(242,242,242,0.78);
     text-transform: uppercase;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     font-family: var(--font-main);
 }
 
 .title-layout .byline {
-    width: min(760px, 72vw);
-    margin-top: 26px;
-    padding: 16px 0 14px;
+    width: min(620px, 72vw);
+    margin-top: 18px;
+    padding: 12px 0 10px;
     border-top: 1px solid rgba(255,255,255,0.12);
     border-bottom: 1px solid rgba(255,255,255,0.12);
     text-align: center;
     font-family: var(--font-mono);
-    font-size: 14px;
-    letter-spacing: 0.32em;
+    font-size: 12px;
+    letter-spacing: 0.24em;
     text-transform: uppercase;
     color: rgba(242,242,242,0.46);
 }
@@ -1777,13 +1817,15 @@ p, li,
 
 .cover-text-panel {
     position: relative;
-    padding: 28px 36px 26px;
+    max-width: 760px;
+    padding: 24px 30px 22px;
     border: 1px solid rgba(255,255,255,0.07);
     background: radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.015) 52%, rgba(255,255,255,0.0) 100%);
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
+    gap: 8px;
 }
 
 .slide-title {
@@ -1813,6 +1855,60 @@ p, li,
 }
 
 .content-area {
+    gap: 20px;
+}
+
+#slide-ai-emotion {
+    padding: 34px 44px 44px;
+}
+
+#slide-ai-emotion .content-area {
+    justify-content: flex-start;
+    gap: 12px;
+}
+
+#slide-ai-emotion .slide-title {
+    font-size: clamp(2rem, 3vw, 2.85rem);
+    margin-bottom: 12px;
+    padding-left: 16px;
+    border-left-width: 5px;
+}
+
+#slide-ai-emotion .lead {
+    max-width: 42ch;
+    font-size: 14px;
+    line-height: 1.42;
+}
+
+#slide-ai-emotion .signal-list {
+    gap: 0;
+}
+
+#slide-ai-emotion .signal-row {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px 0;
+}
+
+#slide-ai-emotion .signal-row .marker {
+    width: 34px;
+    height: 34px;
+    font-size: 11px;
+}
+
+#slide-ai-emotion .signal-row h3 {
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+#slide-ai-emotion .signal-row p,
+#slide-ai-emotion .placeholder-card p {
+    font-size: 11px;
+    line-height: 1.32;
+}
+
+.ai-confessional-layout {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
     gap: 20px;
 }
 
@@ -2170,33 +2266,56 @@ body.grid-view .slide-container::after {
     .commercial-row h3 { font-size: 14px; }
     .commercial-row p { font-size: 10px; line-height: 1.32; }
 
-    #slide-ai-emotion { padding: 34px 38px; }
-    .ai-confessional-layout { grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr); gap: 16px; align-items: center; }
-    .ai-confessional-layout .content-area { height: auto; gap: 12px; }
+    #slide-ai-emotion { padding: 24px 24px 28px; }
+    .ai-confessional-layout { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); gap: 10px; align-items: stretch; height: 100%; }
+    .ai-confessional-layout .content-area { height: auto; gap: 10px; min-height: 0; }
     #slide-ai-emotion .slide-title { font-size: 32px; margin-bottom: 10px; padding-left: 14px; border-left-width: 6px; }
     #slide-ai-emotion .accent-tag { font-size: 9px; margin-bottom: 8px; }
-    #slide-ai-emotion .lead { font-size: 12.5px; line-height: 1.34; }
+    #slide-ai-emotion .lead { font-size: 11px; line-height: 1.24; }
     .ai-positioning-note { padding: 12px 14px; margin-top: 0; }
     .ai-positioning-note span { font-size: 8px; margin-bottom: 5px; }
     .ai-positioning-note h3 { font-size: 20px; line-height: 1.04; }
     #slide-ai-emotion .signal-list { gap: 6px; }
-    #slide-ai-emotion .signal-row { grid-template-columns: 30px minmax(0, 1fr); gap: 9px; padding: 7px 0; }
-    #slide-ai-emotion .signal-row .marker { width: 30px; height: 30px; font-size: 10px; }
-    #slide-ai-emotion .signal-row h3 { font-size: 13px; margin-bottom: 2px; }
-    #slide-ai-emotion .signal-row p { font-size: 9.5px; line-height: 1.28; }
+    #slide-ai-emotion .signal-row { grid-template-columns: 28px minmax(0, 1fr); gap: 8px; padding: 5px 0; }
+    #slide-ai-emotion .signal-row .marker { width: 28px; height: 28px; font-size: 9px; }
+    #slide-ai-emotion .signal-row h3 { font-size: 12px; margin-bottom: 1px; }
+    #slide-ai-emotion .signal-row p { font-size: 8.5px; line-height: 1.18; }
     .ai-confessional-media { grid-template-columns: 1fr; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 10px; min-height: 0; height: 100%; }
     .ai-media-card { border-radius: 14px; }
     .ai-media-card__label { left: 10px; bottom: 10px; min-height: 24px; font-size: 8px; padding: 0 9px; }
-    .placeholder-gallery { grid-template-columns: 1fr; gap: 10px; }
-    .placeholder-card { min-height: 132px; padding: 14px; border-radius: 14px; }
-    .placeholder-card--media.placeholder-card--compact { min-height: 190px; }
-    .placeholder-card--media .placeholder-card__title { font-size: 20px; }
-    .placeholder-card__media { gap: 8px; }
-    .placeholder-card__media--duo { grid-template-columns: 1fr; }
-    .placeholder-card__frame { padding: 8px; border-radius: 12px; }
-    .placeholder-card__eyebrow { font-size: 8px; gap: 6px; }
-    .placeholder-card__title { font-size: 22px; }
-    .placeholder-card p { font-size: 10px; line-height: 1.32; }
+    .placeholder-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 8px; height: 100%; align-content: stretch; }
+    .placeholder-card { min-height: 0; height: 100%; padding: 9px; border-radius: 12px; gap: 5px; }
+    .placeholder-card--media.placeholder-card--compact { min-height: 0; }
+    .placeholder-card--media .placeholder-card__title { font-size: 14px; }
+    .placeholder-card__media { gap: 5px; min-height: 0; }
+    .placeholder-card__media--duo { grid-template-columns: 1fr; grid-template-rows: repeat(2, minmax(0, 1fr)); }
+    .placeholder-card__frame { padding: 5px; border-radius: 10px; }
+    .placeholder-card__eyebrow { font-size: 6.5px; gap: 4px; }
+    .placeholder-card__title { font-size: 16px; }
+    .placeholder-card p { font-size: 7.8px; line-height: 1.14; }
+}
+
+@media (max-width: 480px) {
+    #slide-ai-emotion { padding: 20px 18px 24px; }
+    .ai-confessional-layout { gap: 8px; }
+    .placeholder-gallery { gap: 6px; }
+    .placeholder-card { padding: 8px; }
+    .placeholder-card--media .placeholder-card__title { font-size: 13px; }
+    .placeholder-card__frame { padding: 4px; }
+    .placeholder-card p { font-size: 7.4px; }
+}
+
+@media (max-width: 920px) {
+    .slide-indicator {
+        top: 12px;
+        right: 12px;
+        bottom: auto;
+        left: auto;
+        transform: none;
+        padding: 6px 10px;
+        font-size: 8px;
+        letter-spacing: 0.14em;
+    }
 }
 
 /* Inhale / Exhale image pair (slide-momentum) */
@@ -2284,6 +2403,9 @@ body.grid-view .slide-container::after {
     <div class="ambient-noise"></div>
     <div class="slide-container active" id="slide-title">
         <div class="title-layout">
+            <video class="title-background-video" autoplay muted loop playsinline>
+                <source src="../content/intro.mp4" type="video/mp4">
+            </video>
             <div class="cover-text-panel">
                 <p class="accent-tag"><i class="fa fa-wind"></i> Ironside immersive presentation</p>
                 <h1>Ironside</h1>
@@ -2380,10 +2502,10 @@ body.grid-view .slide-container::after {
                     <h3 class="placeholder-card__title">Inhale moodboard</h3>
                     <div class="placeholder-card__media placeholder-card__media--duo">
                         <div class="placeholder-card__frame">
-                            <img class="placeholder-card__image" src="content/IHALE2.png" alt="Inhale reference with volumetric light beams and haze" loading="lazy" />
+                            <img class="placeholder-card__image" src="content/IHALE2.png" alt="Inhale reference with volumetric light beams and haze" />
                         </div>
                         <div class="placeholder-card__frame">
-                            <img class="placeholder-card__image" src="content/inhale3.png" alt="Inhale reference with atmospheric suspended light in a dark room" loading="lazy" />
+                            <img class="placeholder-card__image" src="content/inhale3.png" alt="Inhale reference with atmospheric suspended light in a dark room" />
                         </div>
                     </div>
                     <p>Atmospheric reference for the expansion phase.</p>
@@ -2393,7 +2515,7 @@ body.grid-view .slide-container::after {
                     <h3 class="placeholder-card__title">Exhale moodboard</h3>
                     <div class="placeholder-card__media">
                         <div class="placeholder-card__frame">
-                            <img class="placeholder-card__image" src="content/videocontent2.png" alt="Exhale reference with projected digital energy and kinetic release" loading="lazy" />
+                            <img class="placeholder-card__image" src="content/videocontent2.png" alt="Exhale reference with projected digital energy and kinetic release" />
                         </div>
                     </div>
                     <p>Projection and digital release reference.</p>
@@ -2403,7 +2525,7 @@ body.grid-view .slide-container::after {
                     <h3 class="placeholder-card__title">LED content look</h3>
                     <div class="placeholder-card__media">
                         <div class="placeholder-card__frame">
-                            <img class="placeholder-card__image" src="content/videocontent1.webp" alt="LED content reference with figurative high-definition digital art" loading="lazy" />
+                            <img class="placeholder-card__image" src="content/videocontent1.webp" alt="LED content reference with figurative high-definition digital art" />
                         </div>
                     </div>
                     <p>High-definition figurative art direction placeholder.</p>
@@ -2413,7 +2535,7 @@ body.grid-view .slide-container::after {
                     <h3 class="placeholder-card__title">Mobile interaction view</h3>
                     <div class="placeholder-card__media">
                         <div class="placeholder-card__frame">
-                            <img class="placeholder-card__image" src="content/mobile.png" alt="Mobile interaction interface for audience participation" loading="lazy" />
+                            <img class="placeholder-card__image" src="content/mobile.png" alt="Mobile interaction interface for audience participation" />
                         </div>
                     </div>
                     <p>Audience participation interface placeholder.</p>
